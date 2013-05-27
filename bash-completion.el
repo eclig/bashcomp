@@ -570,11 +570,7 @@ QUOTE should be nil, ?' or ?\"."
 ;;; ---------- Functions: getting candidates from Bash
 
 (defun bash-completion-comm (line pos words cword open-quote)
-  "Set LINE, POS, WORDS and CWORD, call compgen, return the result.
-
-This function starts a separate bash process if necessary, sets
-up the completion environment (COMP_LINE, COMP_POINT, COMP_WORDS,
-COMP_CWORD) and calls compgen.
+  "Setup the completion environment and call compgen, returning the result.
 
 OPEN-QUOTE should be the quote, a character, that's still open in
 the last word or nil.
@@ -587,10 +583,10 @@ The result is a list of candidates, which might be empty."
   (bash-completion-extract-candidates (nth cword words) open-quote))
 
 (defun bash-completion-extract-candidates (stub open-quote)
-  "Extract the completion candidates from the process buffer for STUB.
+  "Extract the completion candidates for STUB.
 
-This command takes the content of the completion process buffer, split
-it by newlines, post-process the candidates and returns them as a list
+This command takes the contents of `bash-completion-output-buffer', split
+it on newlines, post-process the candidates and returns them as a list
 of strings.
 
 It should be invoked with the comint buffer as the current buffer
@@ -599,7 +595,7 @@ for directory name detection to work.
 If STUB is quoted, the quote character, ' or \", should be passed
 in OPEN-QUOTE.
 
-Post-processing includes escaping special characters, adding a /
+Post-processing includes escaping special characters, adding a \"/\"
 to directory names, merging STUB with the result.  See `bash-completion-fix'
 for more details."
   (let ((bash-completion-prefix stub)
@@ -861,14 +857,10 @@ candidates."
 
 ;;;###autoload
 (defun bash-completion-reset ()
-  "Force the next completion command to start with a fresh BASH process.
+  "Force the next completion command to reread the completion table.
 
-This function kills any existing BASH completion process.  This way, the
-next time BASH completion is requested, a new process will be created with
-the latest configuration.
-
-Call this method if you have updated your .bashrc or any bash init scripts
-and would like bash completion in Emacs to take these changes into account."
+Call this function if you have updated your ~/.bashrc or any Bash init scripts
+and would like Bash completion in Emacs to take these changes into account."
   (interactive)
   (setq bash-completion-initialized nil))
 
