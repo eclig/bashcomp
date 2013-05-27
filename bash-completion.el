@@ -1,4 +1,4 @@
-;;; bash-completion.el --- BASH completion for the shell buffer
+;;; bash-completion.el --- Bash completion for the shell buffer
 
 ;; Copyright (C) 2009 Stephane Zermatten
 
@@ -21,20 +21,20 @@
 ;;; Commentary:
 ;;
 ;; This file defines dynamic completion hooks for shell-mode and
-;; shell-command prompts that are based on bash completion.
+;; shell-command prompts that are based on Bash completion.
 ;;
 ;; You will need shell-command.el to get tab completion in the
 ;; minibuffer. See http://www.namazu.org/~tsuchiya/elisp/shell-command.el
 ;;
 ;; Bash completion for emacs:
-;; - is aware of bash builtins, aliases and functions
+;; - is aware of Bash builtins, aliases and functions
 ;; - does file expansion inside of colon-separated variables
 ;;   and after redirections (> or <)
 ;; - escapes special characters when expanding file names
-;; - is configurable through programmable bash completion
+;; - is configurable through programmable Bash completion
 ;;
 ;; A simpler and more complete alternative to bash-completion.el is to
-;; run a bash shell in a buffer in term mode(M-x `ansi-term').
+;; run a Bash shell in a buffer in term mode(M-x `ansi-term').
 ;; Unfortunately, many Emacs editing features are not available when
 ;; running in term mode.  Also, term mode is not available in
 ;; shell-command prompts.
@@ -44,7 +44,7 @@
 ;; 1. copy bash-completion.el into a directory that's on Emacs load-path
 ;; 2. add this into your .emacs file:
 ;;   (autoload 'bash-completion-dynamic-complete \"bash-completion\"
-;;     \"BASH completion hook\")
+;;     \"Bash completion hook\")
 ;;   (add-hook 'shell-dynamic-complete-functions
 ;; 	'bash-completion-dynamic-complete)
 ;;   (add-hook 'shell-command-complete-functions
@@ -66,15 +66,15 @@
 ;; shell mode or a shell command minibuffer, such as the one started
 ;; for M-x `compile'.
 ;;
-;; You'll get better results if you turn on programmable bash completion.
+;; You'll get better results if you turn on Bash's programmable completion.
 ;; On Ubuntu, this means running:
 ;;   sudo apt-get install bash-completion
 ;; and then adding this to your .bashrc:
 ;;   . /etc/bash_completion
 ;;
-;; Right after enabling programmable bash completion, and whenever you
+;; Right after enabling Bash's programmable completion, and whenever you
 ;; make changes to you .bashrc, call `bash-completion-reset' to make
-;; sure bash completion takes your new settings into account.
+;; sure Bash completion takes your new settings into account.
 ;;
 ;; CAVEATS
 ;;
@@ -88,7 +88,7 @@
 ;;
 ;; COMPATIBILITY
 ;;
-;; bash-completion.el is quite sensitive to the OS and BASH version.
+;; bash-completion.el is quite sensitive to the OS and Bash version.
 ;; This package is known to work on the following environment:
 ;;   GNU Emacs 22.3.1 (Aquamacs 1.7)
 ;;   GNU Emacs 22.1.1 (OSX 10.5)
@@ -96,11 +96,11 @@
 ;;   GNU Emacs 23.0.94.1 (Ubuntu 8.10)
 ;;   GNU Emacs 24.3
 ;;
-;; and using the following bash versions:
+;; and using the following Bash versions:
 ;;   Bash 2.05.08
-;;   BASH 3.2.17
-;;   BASH 3.2.32
-;;   BASH 3.2.39
+;;   Bash 3.2.17
+;;   Bash 3.2.32
+;;   Bash 3.2.39
 ;;
 ;; bash-completion.el does not works on XEmacs.
 
@@ -130,33 +130,33 @@
 
 ;;; ---------- Customization
 (defgroup bash-completion nil
-  "BASH configurable command-line completion "
+  "Bash configurable command-line completion "
   :group 'shell
   :group 'shell-command)
 
 (defcustom bash-completion-enabled t
-  "Enable/Disable BASH configurable command-line completion globally.
+  "Enable/Disable Bash configurable command-line completion globally.
 
-This flag is useful for temporarily disabling bash completion
+This flag is useful for temporarily disabling Bash completion
 once it's been installed.
 
-Setting this variable to t is NOT enough to enable BASH completion.
-BASH completion is only available in the environment for which
+Setting this variable to t is NOT enough to enable Bash completion.
+Bash completion is only available in the environment for which
 `bash-completion-dynamic-complete' has been registered. See
 `bash-completion-setup' for that."
   :type '(boolean)
   :group 'bash-completion)
 
 (defcustom bash-completion-nospace nil
-  "Never let bash add a final space at the end of a completion.
+  "Never let Bash add a final space at the end of a completion.
 
-When there is only one completion candidate, bash sometimes adds
+When there is only one completion candidate, Bash sometimes adds
 a space at the end of the completion to move the cursor at the
 appropriate position to add more command-line arguments. This
 feature doesn't always work perfectly with programmable completion.
 
 Enable this option if you find yourself having to often backtrack
-to remove the extra space bash adds after a completion."
+to remove the extra space Bash adds after a completion."
   :type '(boolean)
   :group 'bash-completion)
 
@@ -170,7 +170,7 @@ to remove the extra space bash adds after a completion."
 (defvar bash-completion-alist nil
   "Maps from command name to the 'complete' arguments.
 
-For example if the following completion is defined in bash:
+For example if the following completion is defined in Bash:
   complete -F _cdargs_aliases cdb
 the following entry is added to `bash-completion-alist':
  (\"cdb\" . (\"-F\" \"_cdargs\"))
@@ -220,18 +220,18 @@ TOKENS is a list of token as returned by
 
 ;;;###autoload
 (defun bash-completion-setup ()
-  "Register bash completion for the shell buffer and shell command line.
+  "Register Bash completion for the shell buffer and shell command line.
 
 This function adds `bash-completion-dynamic-complete' to the completion
 function list of shell mode, `shell-dynamic-complete-functions' and to the
 completion function list of shell-command, `shell-command-complete-functions'.
 
 This function is convenient, but it might not be the best way of enabling
-bash completion in your .emacs file because it forces you to load the module
+Bash completion in your .emacs file because it forces you to load the module
 before it is needed. For an autoload version, add:
 
   (autoload 'bash-completion-dynamic-complete \"bash-completion\"
-    \"BASH completion hook\")
+    \"Bash completion hook\")
   (add-hook 'shell-dynamic-complete-functions
   	  'bash-completion-dynamic-complete)
   (add-hook 'shell-command-complete-functions
@@ -244,7 +244,7 @@ before it is needed. For an autoload version, add:
 
 ;;;###autoload
 (defun bash-completion-dynamic-complete ()
-  "Complete word at cursor using BASH completion.
+  "Complete word at cursor using Bash completion.
 
 This function is meant to be added into
 `shell-dynamic-complete-functions' or
@@ -423,7 +423,7 @@ TOKENS should be in the format returned by `bash-completion-tokenize'."
 (defun bash-completion-tokenize (start end)
   "Tokenize the portion of the current buffer between START and END.
 
-This function splits a BASH command line into tokens.  It knows
+This function splits a Bash command line into tokens.  It knows
 about quotes, escape characters and special command separators such
 as ;, | and &&.
 
@@ -567,7 +567,7 @@ quote).  Get it using `bash-completion-nonsep'.")
 QUOTE should be nil, ?' or ?\"."
   (cdr (assq quote bash-completion-nonsep-alist)))
 
-;;; ---------- Functions: getting candidates from bash
+;;; ---------- Functions: getting candidates from Bash
 
 (defun bash-completion-comm (line pos words cword open-quote)
   "Set LINE, POS, WORDS and CWORD, call compgen, return the result.
@@ -640,7 +640,7 @@ for directory name detection to work."
 	    (rest (cond
 		   ((bash-completion-starts-with str prefix)
 		    (substring str (length prefix)))
-		   ;; bash expands the home directory automatically. This is confusing
+		   ;; Bash expands the home directory automatically. This is confusing
 		   ;; for comint-dynamic-simple-complete
 		   ((and (bash-completion-starts-with prefix "~")
 			 (bash-completion-starts-with str (expand-file-name "~")))
@@ -673,7 +673,7 @@ for directory name detection to work."
   "Escapes COMPLETION-CANDIDATE.
 
 This function escapes all special characters in the result of
-bash completion.  It does nothing if COMPLETION-CANDIDATE looks
+Bash completion.  It does nothing if COMPLETION-CANDIDATE looks
 like a quoted string.
 
 It uses escape characters appropriate for the quote defined in
@@ -764,7 +764,7 @@ Return a CONS containing (before . after)."
      (>= str-len prefix-len)
      (equal (substring str 0 prefix-len) prefix))))
 
-;;; ---------- Functions: bash subprocess
+;;; ---------- Functions: Bash subprocess
 (defun bash-completion-build-alist (buffer)
   "Build `bash-completion-alist' with the content of BUFFER.
 
@@ -809,7 +809,7 @@ Return `bash-completion-alist'."
 
 This function looks into `bash-completion-alist' for a matching compgen
 argument set. If it finds one, it executes it. Otherwise, it executes the
-default bash completion (compgen -o default)
+default Bash completion (compgen -o default)
 
 LINE is the command-line to complete.
 POS is the position of the cursor on LINE
@@ -820,17 +820,17 @@ If the compgen argument set specifies a custom function or command, the
 arguments will be passed to this function or command as:
  COMP_LINE, taken from LINE
  COMP_POINT, taken from POS
- COMP_WORDS, taken from WORDS (a bash array)
+ COMP_WORDS, taken from WORDS (a Bash array)
  COMP_CWORD, taken for CWORD
 
-Return a bash command-line that calls compgen to get the completion
+Return a Bash command-line that calls compgen to get the completion
 candidates."
   (let* ((command-name (file-name-nondirectory (car words)))
          (compgen-args (cdr (assoc command-name bash-completion-alist)))
          (stub (nth cword words)) )
     (cond
      ((= cword 0)
-      ;; a command. let emacs expand executable, let bash
+      ;; a command. let emacs expand executable, let Bash
       ;; expand builtins, aliases and functions
       (concat "compgen -S ' ' -b -c -a -A function " stub))
 
@@ -884,7 +884,7 @@ and would like bash completion in Emacs to take these changes into account."
 (defun bash-completion-send (commandline &optional process)
   "Send COMMANDLINE to the Bash process.
 
-COMMANDLINE should be a bash command, without the final newline.
+COMMANDLINE should be a Bash command, without the final newline.
 
 Optional Argument PROCESS defaults to the process associated with
 the current buffer.
