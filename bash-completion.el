@@ -864,15 +864,6 @@ and would like Bash completion in Emacs to take these changes into account."
   (interactive)
   (setq bash-completion-initialized nil))
 
-(defun bash-completion-kill (process)
-  "Kill PROCESS and its buffer."
-  (when process
-    (when (eq 'run (process-status process))
-      (kill-process process))
-    (let ((buffer (process-buffer process)))
-      (when (buffer-live-p buffer)
-	(kill-buffer buffer)))))
-
 (defun bash-completion-send (commandline &optional process)
   "Send COMMANDLINE to the Bash process.
 
