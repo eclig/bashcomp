@@ -956,7 +956,10 @@ candidates."
   (concat
    (bash-completion-cd-command-prefix)
    (let* ( (command-name (file-name-nondirectory (car words)))
-	   (compgen-args (cdr (assoc command-name bash-completion-alist)))
+           ;; The -D option specifies the default to be used for
+           ;; commands without a previously defined completion.
+	   (compgen-args (or (cdr (assoc command-name bash-completion-alist))
+                             (cdr (assoc "-D" bash-completion-alist))))
 	   (stub (nth cword words)) )
      (cond
       ((= cword 0)
