@@ -864,7 +864,8 @@ candidates."
 Call this function if you have updated your ~/.bashrc or any Bash init scripts
 and would like Bash completion in Emacs to take these changes into account."
   (interactive)
-  (setq bash-completion-initialized nil))
+  (setq bash-completion-initialized nil)
+  (setq bash-completion-alist nil))
 
 (defun bash-completion-send (commandline &optional process)
   "Send COMMANDLINE to the Bash process.
