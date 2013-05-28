@@ -78,11 +78,11 @@
 ;;
 ;; CAVEATS
 ;;
-;; Using the underlying Shell process for doing the completion has several
+;; Using the underlying Shell process for doing the completion has some
 ;; important disadvantages:
-;; - Bash completion is slower than standard emacs completion
+;; - Bash completion is slower than standard Emacs completion.
 ;; - the first completion can take a bit longer, since a table of
-;;   available Bash completions needs to be started and initialized
+;;   available Bash completions needs to be initialized.
 ;; - The variable `comint-prompt-regexp' hast be set to the
 ;;   correct prompt for your Shell.
 ;;
@@ -94,6 +94,8 @@
 ;;   GNU Emacs 22.1.1 (OSX 10.5)
 ;;   GNU Emacs 22.1.1 (Ubuntu 8.04)
 ;;   GNU Emacs 23.0.94.1 (Ubuntu 8.10)
+;;   GNU Emacs 24.1.1 (OSX 10.7)
+;;   GNU Emacs 24.1.1 (OSX 10.8)
 ;;   GNU Emacs 24.3
 ;;
 ;; and using the following Bash versions:

@@ -1,21 +1,16 @@
-bash-completion.el defines dynamic completion hooks for shell-mode and
-shell-command prompts that are based on bash completion.
+This library defines dynamic completion hooks for Emacs `shell-mode'
+and shell-command prompts that are based on Bash's native completion.
 
 You will need shell-command.el to get tab completion in the
 minibuffer. See [http://www.namazu.org/~tsuchiya/elisp/shell-command.el](http://www.namazu.org/~tsuchiya/elisp/shell-command.el)
 
-Bash completion for emacs:
+Bash completion for Emacs:
 
-- is aware of bash builtins, aliases and functions
+- is aware of Bash builtins, aliases and functions.
 - does file expansion inside of colon-separated variables
-  and after redirections (> or <)
-- escapes special characters when expanding file names
-- is configurable through programmable bash completion
-
-When the first completion is requested in shell model or a shell
-command, bash-completion.el starts a separate bash
-process.  Bash-completion.el then uses this process to do the actual
-completion and includes it into Emacs completion suggestions.
+  and after redirections (> or <).
+- escapes special characters when expanding file names.
+- is configurable through Bash's programmable completion.
 
 A simpler and more complete alternative to bash-completion.el is to
 run a bash shell in a buffer in term mode(M-x `ansi-term').
@@ -43,60 +38,37 @@ shell-command prompts.
 
 3. reload your .emacs (M-x `eval-buffer') or restart
 
+4. Set `comint-prompt-regexp' to match your Bash prompt, regardless
+   of the value of `comint-use-prompt-regexp'.  This is needed by
+   `comint-redirect', the library used for getting the completions
+   from the underlying shell process.
+
 Once this is done, use <TAB> as usual to do dynamic completion from
 shell mode or a shell command minibuffer, such as the one started
-for M-x `compile'. Note that the first completion is slow, as emacs
-launches a new bash process.
+for M-x `compile'.
 
-You'll get better results if you turn on programmable bash completion.
+You'll get better results if you turn Bash's programmable completion on.
 On Ubuntu, this means running:
 
     sudo apt-get install bash-completion
 
-and then adding this to your .bashrc:
+and then adding this to your ~/.bashrc:
 
     . /etc/bash_completion
 
-Right after enabling programmable bash completion, and whenever you
-make changes to you .bashrc, call `bash-completion-reset' to make
+Right after enabling Bash's programmable completion, and whenever you
+make changes to you ~/.bashrc, call `bash-completion-reset' to make
 sure bash completion takes your new settings into account.
-
-Loading /etc/bash_completion often takes time, and is not necessary
-in shell mode, since completion is done by a separate process, not
-the process shell-mode process.
-
-To turn off bash completion when running from emacs but keep it on
-for processes started by bash-completion.el, add this to your .bashrc:
-
-    if [[ ( -z "$INSIDE_EMACS" || "$EMACS_BASH_COMPLETE" = "t" ) &&\
-         -f /etc/bash_completion ]]; then
-      . /etc/bash_completion
-    fi
-
-Emacs sets the environment variable INSIDE_EMACS to the processes
-started from it. Processes started by bash-completion.el have
-the environment variable EMACS_BASH_COMPLETE set to t.
 
 ## CAVEATS
 
-Using a separate process for doing the completion has several
+Using the underlying Shell process for doing the completion has some
 important disadvantages:
-
-- bash completion is slower than standard emacs completion
-- the first completion can take a long time, since a new bash process
-  needs to be started and initialized
-- the separate process is not aware of any changes made to bash
-  in the current buffer.
-  In a standard terminal, you could do:
-
-        $ alias myalias=ls
-        $ myal<TAB>
-
-  and bash would propose the new alias.
-  Bash-completion.el cannot do that, as it is not aware of anything
-  configured in the current shell. To make bash-completion.el aware
-  of a new alias, you need to add it to .bashrc and restart the
-  completion process using `bash-completion-reset'.
+- Bash completion is slower than standard Emacs completion.
+- the first completion can take a bit longer, since a table of
+  available Bash completions needs to be initialized.
+- The variable `comint-prompt-regexp' hast be set to the
+  correct prompt for your Shell..
 
 ## COMPATIBILITY
 
@@ -109,11 +81,13 @@ This package is known to work on the following environment:
 - GNU Emacs 23.0.94.1 (Ubuntu 8.10)
 - GNU Emacs 24.1.1 (OSX 10.7)
 - GNU Emacs 24.1.1 (OSX 10.8)
+- GNU Emacs 24.3
 
 and using the following bash versions:
 
-- BASH 3.2.17
-- BASH 3.2.32
-- BASH 3.2.39
+- Bash 2.05.08
+- Bash 3.2.17
+- Bash 3.2.32
+- Bash 3.2.39
 
 bash-completion.el does not works on XEmacs.
