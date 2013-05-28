@@ -313,25 +313,25 @@ garbage
       (let ((bash-completion-alist nil)
 	    (default-directory "~/test"))
 	(bash-completion-generate-line "hello worl" 7 '("hello" "worl") 1))
-      (concat "cd >/dev/null 2>&1 " (expand-file-name "~/test") " ; compgen -o default worl"))
+      "compgen -o default worl")
 
      ("bash-completion-generate-line custom completion no function or command"
       (let ((bash-completion-alist '(("zorg" . ("-A" "-G" "*.txt"))))
 	    (default-directory "/test"))
 	(bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1))
-      "cd >/dev/null 2>&1 /test ; compgen -A -G '*.txt' -- worl")
+      "compgen -A -G '*.txt' -- worl")
 
      ("bash-completion-generate-line custom completion function"
       (let ((bash-completion-alist '(("zorg" . ("-F" "__zorg"))))
 	    (default-directory "/test"))
 	(bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1))
-      "cd >/dev/null 2>&1 /test ; __BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -F __bash_complete_wrapper -- worl")
+      "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -F __bash_complete_wrapper -- worl")
 
      ("bash-completion-generate-line custom completion command"
       (let ((bash-completion-alist '(("zorg" . ("-C" "__zorg"))))
 	    (default-directory "/test"))
 	(bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1))
-      "cd >/dev/null 2>&1 /test ; __BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -F __bash_complete_wrapper -- worl")
+      "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -F __bash_complete_wrapper -- worl")
 
 
      ("bash-completion-starts-with empty str"
@@ -351,45 +351,26 @@ garbage
       t)
 
      ("bash-completion-send"
-      (let ((process 'proces))
-	(flet ((process-buffer
-		(process)
-		(unless (eq process 'process)
-		  (error "unexpected: %s" process))
-		(current-buffer))
-	       (process-send-string
-		(process command)
-		(unless (eq process 'process)
-		  (error "unexpected process: %s" process))
-		(unless (equal "cmd\n" command)
-		  (error "unexpected command: %s" command)))
-	       (accept-process-output
-		(process timeout)
-		(unless (eq process 'process)
-		  (error "unexpected process: %s" process))
-		(unless (= timeout 3.14)
-		  (error "unexpected timeout: %s" timeout))
-		(insert "line1\nline2\n\v")
-		t))
-	  (sz-testutils-with-buffer-content
-	   ""
-	   (bash-completion-send "cmd" 'process 3.14))))
-	  "line1\nline2\n")
-
-     ("bash-completion-cd-command-prefix no current dir"
-      (let ((default-directory nil))
-	(bash-completion-cd-command-prefix))
-      "")
-
-     ("bash-completion-cd-command-prefix current dir"
-      (let ((default-directory "/tmp/x"))
-	(bash-completion-cd-command-prefix))
-      "cd >/dev/null 2>&1 /tmp/x ; ")
-
-     ("bash-completion-cd-command-prefix expand tilde"
-      (let ((default-directory "~/x"))
-	(bash-completion-cd-command-prefix))
-      (concat "cd >/dev/null 2>&1 " (expand-file-name "~/x") " ; "))
+      (let ((bash-completion-initialized t)
+            (process 'something-else))
+        (flet ((process-buffer (process)
+                 (unless (eq process 'process)
+                   (error "unexpected: %s" process))
+                 bash-completion-output-buffer)
+               (comint-redirect-send-command-to-process (command output-buffer process echo no-display)
+                 (unless (eq process 'process)
+                   (error "unexpected process: %s" process))
+                 (unless (equal " cmd" command)
+                   (error "unexpected command: %s" command))
+                 (setq comint-redirect-completed nil))
+               (accept-process-output (process timeout)
+                 (insert "line1\nline2\n")
+                 (setq comint-redirect-completed t)
+                 t))
+          (bash-completion-send "cmd" 'process)
+          (with-current-buffer bash-completion-output-buffer
+            (buffer-string))))
+      "line1\nline2\n")
 
      ("bash-completion-addsuffix ends with /"
       (flet ((file-accessible-directory-p (a) (error "unexpected")))
