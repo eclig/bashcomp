@@ -257,20 +257,20 @@ completion.  Return nil if no match was found."
   (when bash-completion-enabled
     (when (not (window-minibuffer-p))
       (message "Bash completion..."))
-    (let* ( (start (comint-line-beginning-position))
-	    (pos (point))
-	    (tokens (bash-completion-tokenize start pos))
-	    (open-quote (bash-completion-tokenize-open-quote tokens))
-	    (parsed (bash-completion-process-tokens tokens pos))
-	    (line (cdr (assq 'line parsed)))
-	    (point (cdr (assq 'point parsed)))
-	    (cword (cdr (assq 'cword parsed)))
-	    (words (cdr (assq 'words parsed)))
-	    (stub (nth cword words))
-	    (completions (bash-completion-comm line point words cword open-quote))
-	    ;; Override configuration for comint-dynamic-simple-complete.
-	    ;; Bash adds a space suffix automatically.
-	    (comint-completion-addsuffix nil) )
+    (let* ((start (comint-line-beginning-position))
+           (pos (point))
+           (tokens (bash-completion-tokenize start pos))
+           (open-quote (bash-completion-tokenize-open-quote tokens))
+           (parsed (bash-completion-process-tokens tokens pos))
+           (line (cdr (assq 'line parsed)))
+           (point (cdr (assq 'point parsed)))
+           (cword (cdr (assq 'cword parsed)))
+           (words (cdr (assq 'words parsed)))
+           (stub (nth cword words))
+           (completions (bash-completion-comm line point words cword open-quote))
+           ;; Override configuration for comint-dynamic-simple-complete.
+           ;; Bash adds a space suffix automatically.
+           (comint-completion-addsuffix nil))
       (if completions
 	  (comint-dynamic-simple-complete stub completions)
 	;; no standard completion
@@ -390,8 +390,7 @@ Return a sublist of TOKENS."
    (catch 'bash-completion-return
      (let ((command nil) (state 'initial))
        (dolist (token tokens)
-	 (let* (
-		(string (bash-completion-tokenize-get-str token))
+	 (let* ((string (bash-completion-tokenize-get-str token))
 		(is-terminal
 		 (and (member string '(";" "&" "|" "&&" "||"))
 		      (let ((range (bash-completion-tokenize-get-range token)))
@@ -489,8 +488,8 @@ TOKENS is the list of tokens built so farin reverse order.
 TOKEN is the token currently being built.
 
 Return TOKENS with new tokens prepended to it."
-  (let ( (char-start (char-after))
-	 (quote nil) )
+  (let ((char-start (char-after))
+        (quote nil))
     (when (and char-start (or (= char-start ?') (= char-start ?\")))
       (forward-char)
       (setq quote char-start))
@@ -793,9 +792,9 @@ Lines that do not start with the word complete are skipped.
 
 Return `bash-completion-alist'."
   (when (string= "complete" (car words))
-    (let* ( (reverse-wordsrest (nreverse (cdr words)))
-	    (command (car reverse-wordsrest))
-	    (options (nreverse (cdr reverse-wordsrest))) )
+    (let* ((reverse-wordsrest (nreverse (cdr words)))
+           (command (car reverse-wordsrest))
+           (options (nreverse (cdr reverse-wordsrest))))
       (when (and command options)
 	(push (cons command options) bash-completion-alist))))
   bash-completion-alist)
@@ -836,9 +835,9 @@ candidates."
 
      ((or (member "-F" compgen-args) (member "-C" compgen-args))
       ;; custom completion with a function of command
-      (let* ( (args (copy-tree compgen-args))
-              (function (or (member "-F" args) (member "-C" args)))
-              (function-name (car (cdr function))) )
+      (let* ((args (copy-tree compgen-args))
+             (function (or (member "-F" args) (member "-C" args)))
+             (function-name (car (cdr function))))
         (setcar function "-F")
         (setcar (cdr function) "__bash_complete_wrapper")
         (format "__BASH_COMPLETE_WRAPPER=%s compgen %s -- %s"
