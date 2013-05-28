@@ -823,7 +823,8 @@ arguments will be passed to this function or command as:
 Return a Bash command-line that calls compgen to get the completion
 candidates."
   (let* ((command-name (file-name-nondirectory (car words)))
-         (compgen-args (cdr (assoc command-name bash-completion-alist)))
+         (compgen-args (or (cdr (assoc command-name bash-completion-alist))
+                           (cdr (assoc "-D" bash-completion-alist))))
          (stub (nth cword words)) )
     (cond
      ((= cword 0)
