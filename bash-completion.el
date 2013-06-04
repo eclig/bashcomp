@@ -255,8 +255,6 @@ out what the current command is and calls
 If a match was found, it is displayed as is usual for comint
 completion.  Return nil if no match was found."
   (when bash-completion-enabled
-    (when (not (window-minibuffer-p))
-      (message "Bash completion..."))
     (let* ((start (comint-line-beginning-position))
            (pos (point))
            (tokens (bash-completion-tokenize start pos))
