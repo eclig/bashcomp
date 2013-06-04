@@ -686,7 +686,7 @@ for directory name detection to work."
 		   ;; for comint-dynamic-simple-complete
 		   ((and (bash-completion-starts-with prefix "~")
 			 (bash-completion-starts-with str (expand-file-name "~")))
-		    (substring (concat "~" (substring str (length (expand-file-name "~"))))
+		    (substring (concat "~/" (substring str (length (file-name-as-directory (expand-file-name "~")))))
 			       (length prefix)))
 		   ((bash-completion-starts-with prefix str)
 		    ;; completion is a substring of prefix something's
