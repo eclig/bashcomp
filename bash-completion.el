@@ -177,16 +177,12 @@ the following entry is added to `bash-completion-alist':
 
 See `bash-completion-add-to-alist'.")
 
-(defconst bash-completion-wordbreaks-str "\"'@><=;|&(:"
-  "String of word break characters.
+(defconst bash-completion-wordbreaks '(?\" ?' ?@ ?> ?< ?= ?\; ?| ?& ?\( ?:)
+  "List of word break characters.
 This is the equivalent of COMP_WORDBREAKS: special characters
 that are considered word breaks in some cases when doing
 completion.  This was introduced initially to support file
 completion in colon-separated values.")
-
-(defconst bash-completion-wordbreaks
-  (append bash-completion-wordbreaks-str nil)
-  "`bash-completion-wordbreaks-str' as a list of characters.")
 
 (defconst bash-completion-output-buffer " *bash-completion*"
   "Buffer containing output of Bash's completion functions.")
@@ -663,7 +659,7 @@ Return a possibly escaped version of COMPLETION-CANDIDATE."
     completion-candidate)))
 
 (defconst bash-completion-known-suffixes-regexp
-  (concat "[" (regexp-quote bash-completion-wordbreaks-str) "/ ]$")
+  (concat (regexp-opt-charset (append '(?/ ?\s) bash-completion-wordbreaks)) "$")
   "Regexp matching known suffixes for `bash-completion-addsuffix'.")
 
 (defun bash-completion-addsuffix (str)
