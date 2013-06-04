@@ -164,8 +164,6 @@ to remove the extra space Bash adds after a completion."
 
 ;;; ---------- Internal variables and constants
 
-(defvar bash-completion-prefix "" "")
-
 (defvar bash-completion-initialized nil
   "Non-nil if `bash-completion-alist' was already initialized.")
 
@@ -585,53 +583,31 @@ The result is a list of candidates, which might be empty."
 
 (defun bash-completion-extract-candidates (stub open-quote)
   "Extract the completion candidates for STUB.
-
-This command takes the contents of `bash-completion-output-buffer', split
-it on newlines, post-process the candidates and returns them as a list
-of strings.
-
-It should be invoked with the comint buffer as the current buffer
-for directory name detection to work.
-
-If STUB is quoted, the quote character, ' or \", should be passed
+This command takes the contents of `bash-completion-output-buffer', splits
+it on newlines, post-processes the candidates and returns them as a list
+of strings.  If STUB is quoted, the quote character, ' or \", should be passed
 in OPEN-QUOTE.
 
+The completion candidates are subject to post-processing by `bash-completion-fix',
+which see."
+  (mapcar (lambda (str)
+            (bash-completion-fix str stub open-quote))
+          (with-current-buffer bash-completion-output-buffer
+            (split-string (buffer-string) "\n" t))))
+
+(defun bash-completion-fix (str prefix &optional open-quote)
+  "Post-process the completion candidate given in STR.
+PREFIX is the current string being completed.  Optional argument
+OPEN-QUOTE is the quote that's still open in prefix, a
+character (' or \"), or nil.  Return the modified version of the
+completion candidate.
+
 Post-processing includes escaping special characters, adding a \"/\"
-to directory names, merging STUB with the result.  See `bash-completion-fix'
-for more details."
-  (let ((bash-completion-prefix stub)
-	(bash-completion-open-quote open-quote))
-    (mapcar 'bash-completion-fix
-	    (with-current-buffer bash-completion-output-buffer
-	      (split-string (buffer-string) "\n" t)))))
-
-(defun bash-completion-fix (str &optional prefix open-quote)
-  "Fix completion candidate in STR if PREFIX is the current prefix.
-
-STR is the completion candidate to modify.
-
-PREFIX should be the current string being completed.  If it is
-nil, the value of `bash-completion-prefix' is used.  This allows
-calling this function from `mapcar'.
-
-OPEN-QUOTE should be the quote that's still open in prefix.  A
-character (' or \") or nil.  If it is nil, the value of
-`bash-completion-open-quote' is used.  This allows
-calling this function from `mapcar'.
-
-Return a modified version of the completion candidate.
-
-Modification include:
- - escaping of special characters in STR
- - prepending PREFIX if STR does not contain all of it, when
-   completion was done after a wordbreak
- - adding / to recognized directory names
+to directory names, merging STUB with the result.
 
 It should be invoked with the comint buffer as the current buffer
 for directory name detection to work."
-  (let ((prefix (or prefix bash-completion-prefix))
-	(open-quote (or open-quote (and (boundp 'bash-completion-open-quote) bash-completion-open-quote)))
-	(suffix ""))
+  (let ((suffix ""))
     (bash-completion-addsuffix
      (let* ((rebuilt)
 	    (rest (cond
