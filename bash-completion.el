@@ -753,6 +753,7 @@ Return a CONS containing (before . after)."
       (>= str-len suffix-len)
       (equal (substring str (- suffix-len)) suffix)))))
 
+;; TODO: Emacs has `string-prefix-p' since 23.2, maybe use it.
 (defun bash-completion-starts-with (str prefix)
   "Return t if STR starts with PREFIX."
   (let ((prefix-len (length prefix))
