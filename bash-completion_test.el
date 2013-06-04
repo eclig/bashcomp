@@ -388,8 +388,10 @@ garbage
       "hello:")
 
      ("bash-completion-addsuffix check directory"
-      (flet ((file-accessible-directory-p (a) (equal a "/tmp/hello")))
-	(let ((default-directory "/tmp"))
+      (flet ((file-accessible-directory-p (a)
+               (equal a (if (memq system-type '(windows-nt ms-dos)) "c:/tmp/hello" "/tmp/hello"))))
+	(let ((default-directory
+                (if (memq system-type '(windows-nt ms-dos)) "c:/tmp" "/tmp")))
 	  (bash-completion-addsuffix "hello")))
       "hello/")
 
