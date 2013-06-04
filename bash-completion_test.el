@@ -475,6 +475,15 @@ garbage
       (bash-completion-fix "Dexter" "Dexter'")
       "Dexter")
 
+     ("bash-completion-fix for \"~\" ending with a slash"
+      (let ((real-expand-file-name (symbol-function 'expand-file-name)))
+        (flet ((expand-file-name (name &optional default-dir)
+                                 (if (string= name "~")
+                                     "/"
+                                   (funcall real-expand-file-name name default-dir))))
+          (bash-completion-fix "/foo/bar" "~/f")))
+      "~/foo/bar")
+
      ("bash-completion-extract-candidates"
       (let ((bash-completion-nospace nil))
 	(sz-testutils-with-buffer
