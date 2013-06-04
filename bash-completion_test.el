@@ -477,10 +477,10 @@ garbage
 
      ("bash-completion-extract-candidates"
       (let ((bash-completion-nospace nil))
-	(flet ((bash-completion-buffer () (current-buffer)))
-	  (sz-testutils-with-buffer
-	   "hello world\nhello \n\n"
-	   (bash-completion-extract-candidates "hello" nil))))
+	(sz-testutils-with-buffer
+         "hello world\nhello \n\n"
+         (let ((bash-completion-output-buffer (current-buffer)))
+           (bash-completion-extract-candidates "hello" nil))))
       '("hello\\ world" "hello "))
 
      ("bash-completion-nonsep"
