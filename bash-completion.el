@@ -582,14 +582,14 @@ it on newlines, post-processes the candidates and returns them as a list
 of strings.  If STUB is quoted, the quote character, ' or \", should be passed
 in OPEN-QUOTE.
 
-The completion candidates are subject to post-processing by `bash-completion-fix',
+The completion candidates are subject to post-processing by `bash-completion-postprocess',
 which see."
   (mapcar (lambda (str)
-            (bash-completion-fix str stub open-quote))
+            (bash-completion-postprocess str stub open-quote))
           (with-current-buffer bash-completion-output-buffer
             (split-string (buffer-string) "\n" t))))
 
-(defun bash-completion-fix (str prefix &optional open-quote)
+(defun bash-completion-postprocess (str prefix &optional open-quote)
   "Post-process the completion candidate given in STR.
 PREFIX is the current string being completed.  Optional argument
 OPEN-QUOTE is the quote that's still open in prefix, a

@@ -447,43 +447,43 @@ garbage
        (bash-completion-after-last-wordbreak "hello"))
       '("e" "world" "world" "hello"))
 
-     ("bash-completion-fix escape rest"
-      (bash-completion-fix "a\\ bc d e" "a\\ b")
+     ("bash-completion-postprocess escape rest"
+      (bash-completion-postprocess "a\\ bc d e" "a\\ b")
       "a\\ bc\\ d\\ e")
 
-     ("bash-completion-fix do not escape final space"
+     ("bash-completion-postprocess do not escape final space"
       (let ((bash-completion-nospace nil))
-	(bash-completion-fix "ab " "a"))
+	(bash-completion-postprocess "ab " "a"))
       "ab ")
      
-     ("bash-completion-fix remove final space"
+     ("bash-completion-postprocess remove final space"
       (let ((bash-completion-nospace t))
-	(bash-completion-fix "ab " "a"))
+	(bash-completion-postprocess "ab " "a"))
       "ab")
 
-     ("bash-completion-fix unexpand home and escape"
-      (bash-completion-fix (expand-file-name "~/a/hello world") "~/a/he")
+     ("bash-completion-postprocess unexpand home and escape"
+      (bash-completion-postprocess (expand-file-name "~/a/hello world") "~/a/he")
       "~/a/hello\\ world")
 
-     ("bash-completion-fix match after wordbreak and escape"
-      (bash-completion-fix "hello world" "a:b:c:he")
+     ("bash-completion-postprocess match after wordbreak and escape"
+      (bash-completion-postprocess "hello world" "a:b:c:he")
       "a:b:c:hello\\ world")
 
-     ("bash-completion-fix just append"
-      (bash-completion-fix " world" "hello")
+     ("bash-completion-postprocess just append"
+      (bash-completion-postprocess " world" "hello")
       "hello\\ world")
 
-     ("bash-completion-fix subset of the prefix"
-      (bash-completion-fix "Dexter" "Dexter'")
+     ("bash-completion-postprocess subset of the prefix"
+      (bash-completion-postprocess "Dexter" "Dexter'")
       "Dexter")
 
-     ("bash-completion-fix for \"~\" ending with a slash"
+     ("bash-completion-postprocess for \"~\" ending with a slash"
       (let ((real-expand-file-name (symbol-function 'expand-file-name)))
         (flet ((expand-file-name (name &optional default-dir)
                                  (if (string= name "~")
                                      "/"
                                    (funcall real-expand-file-name name default-dir))))
-          (bash-completion-fix "/foo/bar" "~/f")))
+          (bash-completion-postprocess "/foo/bar" "~/f")))
       "~/foo/bar")
 
      ("bash-completion-extract-candidates"
