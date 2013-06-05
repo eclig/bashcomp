@@ -865,12 +865,20 @@ of the command in the buffer  `bash-completion-output-buffer'."
 (defun bash-completion-send-0 (commandline process output-buffer)
   (with-current-buffer (get-buffer-create output-buffer)
     (erase-buffer))
-  ;; prepend a space to COMMANDLINE so that Bash doesn't add it to the
-  ;; history.
-  (comint-redirect-send-command-to-process (concat " " commandline) output-buffer process nil t)
-  (with-current-buffer (process-buffer process)
-    (while (null comint-redirect-completed)
-      (accept-process-output nil 1))))
+  (let ((process-buffer (process-buffer process)))
+    (unwind-protect
+        (with-current-buffer process-buffer
+          ;; prepend a space to COMMANDLINE so that Bash doesn't add it to the
+          ;; history.  Requires HISTCONTROL/HISTIGNORE to be set accordingly.
+          (comint-redirect-send-command-to-process (concat " " commandline) output-buffer process nil t)
+          (while (null comint-redirect-completed)
+            (accept-process-output nil 1)))
+      ;; make sure the clean-up is done in the right buffer.
+      ;; `comint-redirect-completed' is buffer-local and
+      ;; `comint-redirect-cleanup' operates on the current-buffer only.
+      (with-current-buffer process-buffer
+        (unless comint-redirect-completed
+          (comint-redirect-cleanup))))))
 
 (provide 'bash-completion)
 ;;; bash-completion.el ends here
