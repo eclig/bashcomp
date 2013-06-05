@@ -314,7 +314,7 @@ Return one string containing WORDS."
 
 If WORD contains characters that aren't known to be harmless, this
 functions adds single quotes around it and return the result."
-  (if (string-match "^[a-zA-Z0-9_./-]*$" word)
+  (if (string-match-p "^[a-zA-Z0-9_./-]*$" word)
       word
     (concat "'"
 	    (replace-regexp-in-string "'" "'\\''" word :literal t)
@@ -396,7 +396,7 @@ Return a sublist of TOKENS."
 	     (setq command nil))
 
 	    ((and (eq state 'initial)
-		  (null (string-match "=" string)))
+		  (null (string-match-p "=" string)))
 	     (setq state 'args)
 	     (push token command))
 
@@ -587,7 +587,8 @@ which see."
   (mapcar (lambda (str)
             (bash-completion-postprocess str stub open-quote))
           (with-current-buffer bash-completion-output-buffer
-            (split-string (buffer-string) "\n" t))))
+            (save-match-data
+              (split-string (buffer-string) "\n" t)))))
 
 (defun bash-completion-postprocess (str prefix &optional open-quote)
   "Post-process the completion candidate given in STR.
@@ -649,7 +650,7 @@ OPEN-QUOTE, either nil, ' or \".
 Return a possibly escaped version of COMPLETION-CANDIDATE."
   (cond
    ((and (null open-quote)
-	 (null (string-match "^['\"]" completion-candidate)))
+	 (null (string-match-p "^['\"]" completion-candidate)))
     (replace-regexp-in-string "\\([ '\"#]\\)" "\\\\\\1" completion-candidate))
    ((eq ?' open-quote)
     (replace-regexp-in-string "'" "'\\''" completion-candidate :literal t))
@@ -668,7 +669,7 @@ Return a possibly escaped version of COMPLETION-CANDIDATE."
 This function looks for a directory called STR relative to the
 buffer-local variable default-directory. If it exists, it returns
 \(concat STR \"/\"). Otherwise it retruns STR."
-  (if (and (null (string-match bash-completion-known-suffixes-regexp str))
+  (if (and (null (string-match-p bash-completion-known-suffixes-regexp str))
 	   (file-accessible-directory-p (expand-file-name str default-directory)))
 	(concat str "/")
     str))
