@@ -325,13 +325,13 @@ garbage
       (let ((bash-completion-alist '(("zorg" . ("-F" "__zorg"))))
 	    (default-directory "/test"))
 	(bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1))
-      "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -F __bash_complete_wrapper -- worl")
+      "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '\e[bash-completion\e]:' -F __bash_complete_wrapper -- worl")
 
      ("bash-completion-generate-line custom completion command"
       (let ((bash-completion-alist '(("zorg" . ("-C" "__zorg"))))
 	    (default-directory "/test"))
 	(bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1))
-      "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -F __bash_complete_wrapper -- worl")
+      "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '\e[bash-completion\e]:' -F __bash_complete_wrapper -- worl")
 
 
      ("bash-completion-starts-with empty str"
@@ -489,10 +489,18 @@ garbage
      ("bash-completion-extract-candidates"
       (let ((bash-completion-nospace nil))
 	(sz-testutils-with-buffer
-         "hello world\nhello \n\n"
+         "\e[bash-completion\e]:hello world\n\e[bash-completion\e]:hello \n\n"
          (let ((bash-completion-output-buffer (current-buffer)))
            (bash-completion-extract-candidates "hello" nil))))
       '("hello\\ world" "hello "))
+
+     ("bash-completion-extract-candidates with spurious output"
+      (let ((bash-completion-nospace nil))
+	(sz-testutils-with-buffer
+         "\e[bash-completion\e]:hello world\nspurious \n\n"
+         (let ((bash-completion-output-buffer (current-buffer)))
+           (bash-completion-extract-candidates "hello" nil))))
+      '("hello\\ world"))
 
      ("bash-completion-nonsep"
       (list
