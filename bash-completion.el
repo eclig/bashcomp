@@ -186,6 +186,10 @@ completion in colon-separated values.")
 
 (defconst bash-completion-output-buffer " *bash-completion*"
   "Buffer containing output of Bash's completion functions.")
+
+(defconst bash-completion-candidates-prefix "\e\[bash-completion\e]:"
+  "A prefix to be added by Bash's `compgen' to tag completion candidates.")
+
 ;;; ---------- Inline functions
 
 (defsubst bash-completion-tokenize-get-range (token)
@@ -584,11 +588,13 @@ in OPEN-QUOTE.
 
 The completion candidates are subject to post-processing by `bash-completion-postprocess',
 which see."
-  (mapcar (lambda (str)
-            (bash-completion-postprocess str stub open-quote))
-          (with-current-buffer bash-completion-output-buffer
-            (save-match-data
-              (split-string (buffer-string) "\n" t)))))
+  (bash-completion-filter-map
+   (lambda (str)
+     (and (bash-completion-starts-with str bash-completion-candidates-prefix)
+          (bash-completion-postprocess (substring str (length bash-completion-candidates-prefix)) stub open-quote)))
+   (with-current-buffer bash-completion-output-buffer
+     (save-match-data
+       (split-string (buffer-string) "\n" t)))))
 
 (defun bash-completion-postprocess (str prefix &optional open-quote)
   "Post-process the completion candidate given in STR.
@@ -636,6 +642,16 @@ for directory name detection to work."
 	 (unless bash-completion-nospace
 	     (setq suffix " ")))
        (concat prefix (bash-completion-escape-candidate rest open-quote) suffix)))))
+
+(defmacro bash-completion-filter-map (f list)
+  "Apply F to each element of LIST, returning a list of the non-nil results."
+  (let ((result (make-symbol "result")))
+    `(let ((,result '()))
+       (dolist (x ,list ,result)
+         (let ((fx (funcall ,f x)))
+           (when fx
+             (setq ,result (cons fx ,result)))))
+       (nreverse ,result))))
 
 (defun bash-completion-escape-candidate (completion-candidate open-quote)
   "Escapes COMPLETION-CANDIDATE.
@@ -815,7 +831,7 @@ candidates."
              (function-name (car (cdr function))))
         (setcar function "-F")
         (setcar (cdr function) "__bash_complete_wrapper")
-        (format "__BASH_COMPLETE_WRAPPER=%s compgen %s -- %s"
+        (format "__BASH_COMPLETE_WRAPPER=%s compgen -P '%s' %s -- %s"
                 (bash-completion-quote
                  (format "COMP_LINE=%s; COMP_POINT=%s; COMP_CWORD=%s; COMP_WORDS=( %s ); %s \"${COMP_WORDS[@]}\""
                          (bash-completion-quote line)
@@ -823,6 +839,7 @@ candidates."
                          cword
                          (bash-completion-join words)
                          (bash-completion-quote function-name)))
+                bash-completion-candidates-prefix
                 (bash-completion-join args)
                 (bash-completion-quote stub))))
      (t
