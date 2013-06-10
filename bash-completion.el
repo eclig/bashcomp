@@ -290,8 +290,9 @@ This function is not meant to be called outside of
 	 (before-wordbreak (car wordbreak-split))
 	 (after-wordbreak (cdr wordbreak-split)))
     (when (car wordbreak-split)
-      (bash-completion-send (concat
-			     "compgen -o default -- "
+      (bash-completion-send (format
+			     "compgen -P '%s' -o default -- %s"
+                             bash-completion-candidates-prefix
 			     (bash-completion-quote after-wordbreak)))
       (comint-dynamic-simple-complete
        after-wordbreak
@@ -818,11 +819,11 @@ candidates."
      ((= cword 0)
       ;; a command. let emacs expand executable, let Bash
       ;; expand builtins, aliases and functions
-      (concat "compgen -S ' ' -b -c -a -A function " stub))
+      (format "compgen -P '%s' -S ' ' -b -c -a -A function %s" bash-completion-candidates-prefix stub))
 
      ((not compgen-args)
       ;; no completion configured for this command
-      (bash-completion-join (list "compgen" "-o" "default" stub)))
+      (format "compgen -P '%s' -o default %s" (bash-completion-quote stub)))
 
      ((or (member "-F" compgen-args) (member "-C" compgen-args))
       ;; custom completion with a function of command
@@ -844,7 +845,9 @@ candidates."
                 (bash-completion-quote stub))))
      (t
       ;; simple custom completion
-      (format "compgen %s -- %s" (bash-completion-join compgen-args) stub)))))
+      (format "compgen -P '%s' %s -- %s"
+              bash-completion-candidates-prefix
+              (bash-completion-join compgen-args) stub)))))
 
 ;;;###autoload
 (defun bash-completion-reset ()
