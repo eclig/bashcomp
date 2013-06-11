@@ -313,7 +313,7 @@ garbage
       (let ((bash-completion-alist nil)
 	    (default-directory "~/test"))
 	(bash-completion-generate-line "hello worl" 7 '("hello" "worl") 1))
-      (format "compgen -P '%s' -o default -- worl" bash-completion-candidates-prefix))
+      (format "compgen -P '%s' -f -- worl" bash-completion-candidates-prefix))
 
      ("bash-completion-generate-line custom completion no function or command"
       (let ((bash-completion-alist '(("zorg" . ("-A" "-G" "*.txt"))))

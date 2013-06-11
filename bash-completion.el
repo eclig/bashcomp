@@ -291,7 +291,7 @@ This function is not meant to be called outside of
 	 (after-wordbreak (cdr wordbreak-split)))
     (when (car wordbreak-split)
       (bash-completion-send
-       (bash-completion-compgen -o default -- ,after-wordbreak))
+       (bash-completion-compgen -f -- ,after-wordbreak))
       (comint-dynamic-simple-complete
        after-wordbreak
        (bash-completion-extract-candidates after-wordbreak open-quote)))))
@@ -799,8 +799,8 @@ Return `bash-completion-alist'."
   "Generate a command-line that calls compgen.
 
 This function looks into `bash-completion-alist' for a matching compgen
-argument set. If it finds one, it executes it. Otherwise, it executes the
-default Bash completion (compgen -o default)
+argument set.  If it finds one, it executes it. Otherwise, it tries to
+complete the current word as a filename.
 
 LINE is the command-line to complete.
 POS is the position of the cursor on LINE
@@ -828,7 +828,7 @@ candidates."
 
      ((not compgen-args)
       ;; no completion configured for this command
-      (bash-completion-compgen -o default -- ,stub))
+      (bash-completion-compgen -f -- ,stub))
 
      ((or (member "-F" compgen-args) (member "-C" compgen-args))
       ;; custom completion with a function of command
