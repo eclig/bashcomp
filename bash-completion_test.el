@@ -313,25 +313,25 @@ garbage
       (let ((bash-completion-alist nil)
 	    (default-directory "~/test"))
 	(bash-completion-generate-line "hello worl" 7 '("hello" "worl") 1))
-      "compgen -o default worl")
+      (format "compgen -P '%s' -o default -- worl" bash-completion-candidates-prefix))
 
      ("bash-completion-generate-line custom completion no function or command"
       (let ((bash-completion-alist '(("zorg" . ("-A" "-G" "*.txt"))))
 	    (default-directory "/test"))
 	(bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1))
-      "compgen -A -G '*.txt' -- worl")
+      (format "compgen -P '%s' -A -G '*.txt' -- worl" bash-completion-candidates-prefix))
 
      ("bash-completion-generate-line custom completion function"
       (let ((bash-completion-alist '(("zorg" . ("-F" "__zorg"))))
 	    (default-directory "/test"))
 	(bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1))
-      "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '\e[bash-completion\e]:' -F __bash_complete_wrapper -- worl")
+      (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl" bash-completion-candidates-prefix))
 
      ("bash-completion-generate-line custom completion command"
       (let ((bash-completion-alist '(("zorg" . ("-C" "__zorg"))))
 	    (default-directory "/test"))
 	(bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1))
-      "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '\e[bash-completion\e]:' -F __bash_complete_wrapper -- worl")
+      (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl" bash-completion-candidates-prefix))
 
 
      ("bash-completion-starts-with empty str"
@@ -489,7 +489,9 @@ garbage
      ("bash-completion-extract-candidates"
       (let ((bash-completion-nospace nil))
 	(sz-testutils-with-buffer
-         "\e[bash-completion\e]:hello world\n\e[bash-completion\e]:hello \n\n"
+         (format "%shello world\n%shello \n\n"
+                 bash-completion-candidates-prefix
+                 bash-completion-candidates-prefix)
          (let ((bash-completion-output-buffer (current-buffer)))
            (bash-completion-extract-candidates "hello" nil))))
       '("hello\\ world" "hello "))
@@ -497,7 +499,7 @@ garbage
      ("bash-completion-extract-candidates with spurious output"
       (let ((bash-completion-nospace nil))
 	(sz-testutils-with-buffer
-         "\e[bash-completion\e]:hello world\nspurious \n\n"
+         (format "%shello world\nspurious \n\n" bash-completion-candidates-prefix)
          (let ((bash-completion-output-buffer (current-buffer)))
            (bash-completion-extract-candidates "hello" nil))))
       '("hello\\ world"))

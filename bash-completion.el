@@ -187,7 +187,7 @@ completion in colon-separated values.")
 (defconst bash-completion-output-buffer " *bash-completion*"
   "Buffer containing output of Bash's completion functions.")
 
-(defconst bash-completion-candidates-prefix "\e\[bash-completion\e]:"
+(defconst bash-completion-candidates-prefix "\e\[bash-completion]:"
   "A prefix to be added by Bash's `compgen' to tag completion candidates.")
 
 ;;; ---------- Inline functions
@@ -290,10 +290,8 @@ This function is not meant to be called outside of
 	 (before-wordbreak (car wordbreak-split))
 	 (after-wordbreak (cdr wordbreak-split)))
     (when (car wordbreak-split)
-      (bash-completion-send (format
-			     "compgen -P '%s' -o default -- %s"
-                             bash-completion-candidates-prefix
-			     (bash-completion-quote after-wordbreak)))
+      (bash-completion-send
+       (bash-completion-compgen -o default -- ,after-wordbreak))
       (comint-dynamic-simple-complete
        after-wordbreak
        (bash-completion-extract-candidates after-wordbreak open-quote)))))
@@ -567,6 +565,13 @@ QUOTE should be nil, ?' or ?\"."
 
 ;;; ---------- Functions: getting candidates from Bash
 
+(defmacro bash-completion-compgen (&rest args)
+  `(concat (format "compgen -P '%s' " bash-completion-candidates-prefix)
+           (mapconcat (lambda (s)
+                        (bash-completion-quote (format "%s" s)))
+                      (backquote ,args)
+                      " ")))
+
 (defun bash-completion-comm (line pos words cword open-quote)
   "Setup the completion environment and call compgen, returning the result.
 
@@ -819,11 +824,11 @@ candidates."
      ((= cword 0)
       ;; a command. let emacs expand executable, let Bash
       ;; expand builtins, aliases and functions
-      (format "compgen -P '%s' -S ' ' -b -c -a -A function %s" bash-completion-candidates-prefix stub))
+      (bash-completion-compgen -S " " -b -c -a -A function -- ,stub))
 
      ((not compgen-args)
       ;; no completion configured for this command
-      (format "compgen -P '%s' -o default %s" (bash-completion-quote stub)))
+      (bash-completion-compgen -o default -- ,stub))
 
      ((or (member "-F" compgen-args) (member "-C" compgen-args))
       ;; custom completion with a function of command
@@ -832,22 +837,18 @@ candidates."
              (function-name (car (cdr function))))
         (setcar function "-F")
         (setcar (cdr function) "__bash_complete_wrapper")
-        (format "__BASH_COMPLETE_WRAPPER=%s compgen -P '%s' %s -- %s"
-                (bash-completion-quote
-                 (format "COMP_LINE=%s; COMP_POINT=%s; COMP_CWORD=%s; COMP_WORDS=( %s ); %s \"${COMP_WORDS[@]}\""
-                         (bash-completion-quote line)
-                         pos
-                         cword
-                         (bash-completion-join words)
-                         (bash-completion-quote function-name)))
-                bash-completion-candidates-prefix
-                (bash-completion-join args)
-                (bash-completion-quote stub))))
+        (concat (format "__BASH_COMPLETE_WRAPPER=%s "
+                        (bash-completion-quote
+                         (format "COMP_LINE=%s; COMP_POINT=%s; COMP_CWORD=%s; COMP_WORDS=( %s ); %s \"${COMP_WORDS[@]}\""
+                                 (bash-completion-quote line)
+                                 pos
+                                 cword
+                                 (bash-completion-join words)
+                                 (bash-completion-quote function-name))))
+                (bash-completion-compgen ,@args -- ,stub))))
      (t
       ;; simple custom completion
-      (format "compgen -P '%s' %s -- %s"
-              bash-completion-candidates-prefix
-              (bash-completion-join compgen-args) stub)))))
+      (bash-completion-compgen ,@compgen-args -- ,stub)))))
 
 ;;;###autoload
 (defun bash-completion-reset ()
