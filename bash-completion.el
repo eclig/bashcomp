@@ -192,13 +192,19 @@ completion in colon-separated values.")
 
 ;;; ---------- Inline functions
 
+(defsubst bash-completion-tokenize-new (string start end)
+  "Return a new token containing STRING extending from START to END."
+  (list
+   (cons 'str string)
+   (cons 'range (cons start end))))
+
 (defsubst bash-completion-tokenize-get-range (token)
   "Return the TOKEN range as a cons: (start . end)."
   (cdr (assq 'range token)))
 
-(defsubst bash-completion-tokenize-set-end (token)
-  "Set the end position of TOKEN to the cursor position."
-  (setcdr (bash-completion-tokenize-get-range token) (point)))
+(defsubst bash-completion-tokenize-set-end (token pos)
+  "Set the end position of TOKEN to the POS."
+  (setcdr (bash-completion-tokenize-get-range token) pos))
 
 (defsubst bash-completion-tokenize-append-str (token str)
   "Append to TOKEN the string STR."
@@ -260,7 +266,7 @@ completion.  Return nil if no match was found."
            (tokens (bash-completion-tokenize start pos))
            (open-quote (bash-completion-tokenize-open-quote tokens))
            (parsed (bash-completion-process-tokens tokens pos))
-           (line (cdr (assq 'line parsed)))
+           (line  (cdr (assq 'line parsed)))
            (point (cdr (assq 'point parsed)))
            (cword (cdr (assq 'cword parsed)))
            (words (cdr (assq 'words parsed)))
@@ -286,10 +292,8 @@ to the parameter OPEN-QUOTE.
 
 This function is not meant to be called outside of
 `bash-completion-dynamic-complete'."
-  (let* ((wordbreak-split (bash-completion-last-wordbreak-split stub))
-	 (before-wordbreak (car wordbreak-split))
-	 (after-wordbreak (cdr wordbreak-split)))
-    (when (car wordbreak-split)
+  (let ((after-wordbreak (bash-completion-after-last-wordbreak stub)))
+    (unless (string= stub after-wordbreak)
       (bash-completion-send
        (bash-completion-compgen -f -- ,after-wordbreak))
       (comint-dynamic-simple-complete
@@ -312,6 +316,8 @@ Return one string containing WORDS."
        words " ")
     ""))
 
+;; TODO: use `shell-quote-argument' instead?
+;; See also `tramp-shell-quote-argument'.
 (defun bash-completion-quote (word)
   "Put single quotes around WORD unless it's crearly unnecessary.
 
@@ -323,6 +329,7 @@ functions adds single quotes around it and return the result."
 	    (replace-regexp-in-string "'" "'\\''" word :literal t)
 	    "'")))
 
+;; TODO: not used anywhere, except in the regression tests
 (defun bash-completion-parse-line (start pos)
   "Split a command line in the current buffer between START and POS.
 
@@ -357,7 +364,7 @@ as returned by `bash-completion-parse-line' given the cursor position POS."
   (let* ((first-token (car tokens))
 	 (last-token (car (last tokens)))
 	 (start (or (car (bash-completion-tokenize-get-range first-token)) pos))
-	 (end (or (cdr (bash-completion-tokenize-get-range last-token)) pos))
+	 (end   (or (cdr (bash-completion-tokenize-get-range last-token)) pos))
 	 (words (bash-completion-strings-from-tokens tokens)))
     (when (or (> pos end) (= start end))
       (setq words (append words '(""))))
@@ -423,8 +430,8 @@ This function splits a Bash command line into tokens.  It knows
 about quotes, escape characters and special command separators such
 as ;, | and &&.
 
-This method returns a list of tokens found between START and END,
-ordered by position.  Tokens contain a string and a range.
+Return a list of tokens found between START and END, ordered by
+position.  Tokens contain a string and a range.
 
 The string in a token is an unescaped version of the token.  For
 example, if the token is 'hello world', the string contains
@@ -443,10 +450,10 @@ set using `bash-completion-tokenize-set-end'.
 
 Tokens should always be accessed using the functions specified above,
 never directly as they're likely to change as this code evolves.
-The current format of a token is '(string . (start . end))."
+The current representation of a token is '(string . (start . end))."
   (save-excursion
     (goto-char start)
-    (nreverse (bash-completion-tokenize-new-element end nil))))
+    (nreverse (bash-completion-tokenize-new-element end '()))))
 
 (defun bash-completion-tokenize-new-element (end tokens)
   "Tokenize the rest of the line until END and complete TOKENS.
@@ -454,17 +461,15 @@ The current format of a token is '(string . (start . end))."
 This function is meant to be called exclusively from
 `bash-completion-tokenize' and `bash-completion-tokenize-0'.
 
-This function expect the point to be at the start of a new
+This function expects the point to be at the start of a new
 element to be added to the list of tokens.
 
-Return TOKENS with new tokens found betwen the current point and
+Return TOKENS with new tokens found between the current point and
 END prepended to it."
   (skip-chars-forward " \t\n\r" end)
   (if (< (point) end)
       (bash-completion-tokenize-0 end tokens
-				  (list
-				   (cons 'str "")
-				   (cons 'range (cons (point) nil))))
+                                  (bash-completion-tokenize-new "" (point) nil))
     tokens))
 
 (defun bash-completion-tokenize-0 (end tokens token)
@@ -473,23 +478,21 @@ END prepended to it."
 This function is meant to be called exclusively from
 `bash-completion-tokenize-new-element'.
 
-This function expect the point to be at the start of a new token
+This function expects the point to be at the start of a new token
 section, either at the start of the token or just after a quote
 has been closed in the token.  It detects new opening quotes and
 calls `bash-completion-tokenize-1'.
 
 END specifies the point at which tokenization should stop.
 
-TOKENS is the list of tokens built so farin reverse order.
+TOKENS is the list of tokens built so far in reverse order.
 
 TOKEN is the token currently being built.
 
 Return TOKENS with new tokens prepended to it."
-  (let ((char-start (char-after))
-        (quote nil))
-    (when (and char-start (or (= char-start ?') (= char-start ?\")))
-      (forward-char)
-      (setq quote char-start))
+  (let ((quote (car (memq (char-after) '(?\' ?\")))))
+    (when quote
+      (forward-char))
     (bash-completion-tokenize-1 end quote tokens token)))
 
 (defun bash-completion-tokenize-1 (end quote tokens token)
@@ -506,9 +509,10 @@ token.
 
 END specifies the point at which tokenization should stop.
 
-QUOTE specifies the current quote.  It should be nil ?' or ?\"
+QUOTE specifies the current quote.  It should be either nil, ?'
+or ?\".
 
-TOKENS is the list of tokens built so farin reverse order.
+TOKENS is the list of tokens built so far in reverse order.
 
 TOKEN is the token currently being built.
 
@@ -516,7 +520,7 @@ Return TOKENS with new tokens prepended to it."
   ;; parse the token elements at the current position and
   ;; append them
   (let ((local-start (point)))
-    (when (= (skip-chars-forward "[;&|]" end) 0)
+    (when (zerop (skip-chars-forward "[;&|]" end))
       (skip-chars-forward (bash-completion-nonsep quote) end))
     (bash-completion-tokenize-append-str
      token
@@ -529,7 +533,7 @@ Return TOKENS with new tokens prepended to it."
       (aset str (1- (length str)) (char-before)))
     (bash-completion-tokenize-1 end quote tokens token))
    ;; opening quote
-   ((and (not quote) (char-after) (or (= ?' (char-after)) (= ?\" (char-after))))
+   ((and (not quote) (char-after) (memq (char-after) '(?\' ?\")))
     (bash-completion-tokenize-0 end tokens token))
    ;; closing quote
    ((and quote (char-after) (= quote (char-after)))
@@ -542,7 +546,7 @@ Return TOKENS with new tokens prepended to it."
     (bash-completion-tokenize-1 end quote tokens token))
    ;; word end
    (t
-    (bash-completion-tokenize-set-end token)
+    (bash-completion-tokenize-set-end token (point))
     (when quote
       (push (cons 'quote quote) token))
     (push token tokens)
@@ -550,7 +554,7 @@ Return TOKENS with new tokens prepended to it."
 
 (defconst bash-completion-nonsep-alist
   '((nil . "^ \t\n\r;&|'\"#")
-    (?' . "^ \t\n\r'")
+    (?'  . "^ \t\n\r'")
     (?\" . "^ \t\n\r\""))
   "Alist of sets of non-breaking characters.
 Keeps a regexp specifying the set of non-breaking characters for
@@ -734,7 +738,7 @@ Return a CONS containing (before . after)."
 	(when (memq (aref str end) bash-completion-wordbreaks)
 	  (throw 'bash-completion-return (cons (substring str 0 (1+ end)) (substring str (1+ end)))))
 	(setq end (1- end))))
-      (cons "" str)))
+    (cons "" str)))
 
 (defun bash-completion-ends-with (str suffix)
   "Return t if STR ends with SUFFIX."
