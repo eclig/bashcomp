@@ -218,8 +218,7 @@ completion in colon-separated values.")
 (defsubst bash-completion-tokenize-open-quote (tokens)
   "Return the quote character that was still open in the last token.
 
-TOKENS is a list of token as returned by
-`bash-completion-tokenize'."
+TOKENS is a list of tokens as returned by `bash-completion-tokenize'."
   (cdr (assq 'quote (car (last tokens)))))
 
 ;;; ---------- Functions: completion
@@ -430,127 +429,76 @@ This function splits a Bash command line into tokens.  It knows
 about quotes, escape characters and special command separators such
 as ;, | and &&.
 
-Return a list of tokens found between START and END, ordered by
-position.  Tokens contain a string and a range.
-
-The string in a token is an unescaped version of the token.  For
-example, if the token is 'hello world', the string contains
-\"hello world\", without the quotes.  It can be accessed using
-`bash-completion-tokenize-get-str'.  It can be modified using
-`bash-completion-tokenize-append-str'.
-
-The range is a cons containing the start and end position of the
-token (start . end).  Start is the position of the first character
-that belongs to the token.  End is the position of the first
-character that doesn't belong to the token.  For example in the
-string \" hello world \", the first token range is (2 . 7) and
-the second token range (9 . 14). It can be accessed using
-`bash-completion-tokenize-get-range'. The end position can be
-set using `bash-completion-tokenize-set-end'.
-
-Tokens should always be accessed using the functions specified above,
-never directly as they're likely to change as this code evolves.
-The current representation of a token is '(string . (start . end))."
+Return a list of tokens found between START and END."
   (save-excursion
     (goto-char start)
-    (nreverse (bash-completion-tokenize-new-element end '()))))
+    (skip-chars-forward " \t\n\r" end)
+    (let ((tokens '()))
+      (while (< (point) end)
+        (push (bash-completion-get-token end) tokens))
+      (nreverse tokens))))
 
-(defun bash-completion-tokenize-new-element (end tokens)
-  "Tokenize the rest of the line until END and complete TOKENS.
+(defun bash-completion-get-token (end)
+  "Return the next token in the current buffer.
 
-This function is meant to be called exclusively from
-`bash-completion-tokenize' and `bash-completion-tokenize-0'.
-
-This function expects the point to be at the start of a new
-element to be added to the list of tokens.
-
-Return TOKENS with new tokens found between the current point and
-END prepended to it."
-  (skip-chars-forward " \t\n\r" end)
-  (if (< (point) end)
-      (bash-completion-tokenize-0 end tokens
-                                  (bash-completion-tokenize-new "" (point) nil))
-    tokens))
-
-(defun bash-completion-tokenize-0 (end tokens token)
-  "Tokenize the rest of the token until END and add it into TOKENS.
-
-This function is meant to be called exclusively from
-`bash-completion-tokenize-new-element'.
-
-This function expects the point to be at the start of a new token
-section, either at the start of the token or just after a quote
-has been closed in the token.  It detects new opening quotes and
-calls `bash-completion-tokenize-1'.
+This function expects the point to be either at the start of a
+new token or just after a closing quote in a token.
 
 END specifies the point at which tokenization should stop.
 
-TOKENS is the list of tokens built so far in reverse order.
+Return a new token.  Note that the string in a token is never
+escaped.  For example, if the token is 'hello world', the string
+contains \"hello world\", without the quotes."
+  (bash-completion-collect-token (bash-completion-tokenize-new "" (point) nil) end nil))
+
+(defun bash-completion-collect-token (token end quote)
+  "Collect characters in TOKEN.
 
 TOKEN is the token currently being built.
 
-Return TOKENS with new tokens prepended to it."
-  (let ((quote (car (memq (char-after) '(?\' ?\")))))
-    (when quote
-      (forward-char))
-    (bash-completion-tokenize-1 end quote tokens token)))
+Tokenization stops either when the token ends or when buffer
+position END is reached.
 
-(defun bash-completion-tokenize-1 (end quote tokens token)
-  "Tokenize the rest of the token.
+QUOTE specifies the currently active quotation character: either
+nil, ?'  or ?\".
 
-This function is meant to be called exclusively from
-`bash-completion-tokenize-0'.
-
-This function tokenize the rest of the token and either call
-itself and `bash-completion-tokenize-0' recursively or append the
-token to the list of token and call
-`bash-completion-tokenize-new-element' to look for the next
-token.
-
-END specifies the point at which tokenization should stop.
-
-QUOTE specifies the current quote.  It should be either nil, ?'
-or ?\".
-
-TOKENS is the list of tokens built so far in reverse order.
-
-TOKEN is the token currently being built.
-
-Return TOKENS with new tokens prepended to it."
+Return TOKEN."
   ;; parse the token elements at the current position and
   ;; append them
-  (let ((local-start (point)))
+  (let ((beg (point)))
     (when (zerop (skip-chars-forward "[;&|]" end))
       (skip-chars-forward (bash-completion-nonsep quote) end))
     (bash-completion-tokenize-append-str
      token
-     (buffer-substring-no-properties local-start (point))))
-  (cond
-   ;; an escaped char, skip, whatever it is
-   ((and (char-before) (= ?\\ (char-before)))
-    (forward-char)
-    (let ((str (bash-completion-tokenize-get-str token)))
-      (aset str (1- (length str)) (char-before)))
-    (bash-completion-tokenize-1 end quote tokens token))
-   ;; opening quote
-   ((and (not quote) (char-after) (memq (char-after) '(?\' ?\")))
-    (bash-completion-tokenize-0 end tokens token))
-   ;; closing quote
-   ((and quote (char-after) (= quote (char-after)))
-    (forward-char)
-    (bash-completion-tokenize-0 end tokens token))
-   ;; space inside a quote
-   ((and quote (char-after) (not (= quote (char-after))))
-    (forward-char)
-    (bash-completion-tokenize-append-str token (char-to-string (char-before)))
-    (bash-completion-tokenize-1 end quote tokens token))
-   ;; word end
-   (t
-    (bash-completion-tokenize-set-end token (point))
-    (when quote
-      (push (cons 'quote quote) token))
-    (push token tokens)
-    (bash-completion-tokenize-new-element end tokens))))
+     (buffer-substring-no-properties beg (point))))
+  (let ((next-char (char-after)))
+    (cond
+     ;; an escaped char, skip it.
+     ((and (char-before) (= ?\\ (char-before)))
+      (forward-char)
+      (let ((str (bash-completion-tokenize-get-str token)))
+        (aset str (1- (length str)) next-char))
+      (bash-completion-collect-token token end quote))
+     ;; opening quote
+     ((and (not quote) next-char (memq next-char '(?\' ?\")))
+      (forward-char)
+      (bash-completion-collect-token token end next-char))
+     ;; closing quote
+     ((and quote next-char (= quote next-char))
+      (forward-char)
+      (bash-completion-collect-token token end nil))
+     ;; space inside a quote
+     ((and quote next-char (/= quote next-char))
+      (forward-char)
+      (bash-completion-tokenize-append-str token (char-to-string next-char))
+      (bash-completion-collect-token token end quote))
+     ;; word end
+     (t
+      (when quote
+        (push (cons 'quote quote) token))
+      (bash-completion-tokenize-set-end token (point))
+      (skip-chars-forward " \t\n\r" end)
+      token))))
 
 (defconst bash-completion-nonsep-alist
   '((nil . "^ \t\n\r;&|'\"#")
