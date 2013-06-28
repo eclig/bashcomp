@@ -475,8 +475,9 @@ Return TOKEN."
      ((and next-char (= ?\\ next-char))
       (forward-char)
       (let ((next-char (char-after)))
-        (forward-char)
-        (bash-completion-token-append-string token (char-to-string next-char)))
+        (when next-char
+          (forward-char)
+          (bash-completion-token-append-string token (char-to-string next-char))))
       (bash-completion-collect-token token end quote))
      ;; opening quote
      ((and (not quote) next-char (memq next-char '(?\' ?\")))
