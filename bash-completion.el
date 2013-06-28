@@ -464,7 +464,7 @@ Return TOKEN."
   ;; parse the token elements at the current position and
   ;; append them
   (let ((beg (point)))
-    (when (zerop (skip-chars-forward "[;&|]" end))
+    (when (zerop (skip-chars-forward ";&|" end))
       (skip-chars-forward (bash-completion-nonsep quote) end))
     (bash-completion-token-append-string
      token
