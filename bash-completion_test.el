@@ -117,7 +117,7 @@ cases. That's why they need to be enabled manually.")
        '("a '-\\'hello world\\'-' b c")
        (bash-completion-strings-from-tokens
 	(bash-completion-tokenize 1 (line-end-position))))
-      '("a" "-'hello world'-" "b" "c"))
+      '("a" "-\\hello" "world'- b c"))
 
      ("bash-completion-tokenize complex quote mix"
       (sz-testutils-with-buffer
