@@ -77,6 +77,13 @@ cases. That's why they need to be enabled manually.")
 	(bash-completion-tokenize 1 (line-end-position 2))))
       '("a" "hello" "world" "b" "c"))
 
+     ("bash-completion-tokenize escaped char"
+      (sz-testutils-with-buffer
+       '("a hello\\-world b c")
+       (bash-completion-strings-from-tokens
+	(bash-completion-tokenize 1 (line-end-position))))
+      '("a" "hello-world" "b" "c"))
+
      ("bash-completion-tokenize escaped space"
       (sz-testutils-with-buffer
        '("a hello\\ world b c")
@@ -509,7 +516,7 @@ garbage
        (bash-completion-nonsep nil)
        (bash-completion-nonsep ?')
        (bash-completion-nonsep ?\"))
-      '("^ \t\n\r;&|'\"#" "^ \t\n\r'" "^ \t\n\r\""))
+      '("^ \t\n\r;&|'\"\\\\#" "^ \t\n\r'" "^ \t\n\r\"\\\\"))
 
 
      ("bash-completion-escape-candidate no quote"

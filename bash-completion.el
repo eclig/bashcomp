@@ -471,11 +471,12 @@ Return TOKEN."
      (buffer-substring-no-properties beg (point))))
   (let ((next-char (char-after)))
     (cond
-     ;; an escaped char, skip it.
-     ((and (char-before) (= ?\\ (char-before)))
+     ;; an escaped char
+     ((and next-char (= ?\\ next-char))
       (forward-char)
-      (let ((str (bash-completion-token-string token)))
-        (aset str (1- (length str)) next-char))
+      (let ((next-char (char-after)))
+        (forward-char)
+        (bash-completion-token-append-string token (char-to-string next-char)))
       (bash-completion-collect-token token end quote))
      ;; opening quote
      ((and (not quote) next-char (memq next-char '(?\' ?\")))
@@ -499,9 +500,9 @@ Return TOKEN."
       token))))
 
 (defconst bash-completion-nonsep-alist
-  '((nil . "^ \t\n\r;&|'\"#")
+  '((nil . "^ \t\n\r;&|'\"\\\\#")
     (?'  . "^ \t\n\r'")
-    (?\" . "^ \t\n\r\""))
+    (?\" . "^ \t\n\r\"\\\\"))
   "Alist of sets of non-breaking characters.
 Keeps a regexp specifying the set of non-breaking characters for
 all quoting environment (no quote, single quote and double
