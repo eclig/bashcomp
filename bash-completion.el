@@ -815,17 +815,22 @@ Once this command has run without errors, you will find the result
 of the command in the buffer  `bash-completion-output-buffer'."
   (let ((process (or process (get-buffer-process (current-buffer)))))
     (unless bash-completion-initialized
-      (bash-completion-send-0
-       (concat
-        "function __bash_complete_wrapper { eval $__BASH_COMPLETE_WRAPPER; };"
-        "function quote_readline { echo \"$1\"; };"
-        "complete -p")
-       process
-       bash-completion-output-buffer)
-      (bash-completion-build-alist bash-completion-output-buffer)
+      (bash-completion-initialize process)
       (setq bash-completion-initialized t))
 
     (bash-completion-send-0 commandline process bash-completion-output-buffer)))
+
+(defun bash-completion-initialize (process)
+  "Initialize `bash-completion-alist' for the shell running in PROCESS."
+  (with-temp-buffer
+    (bash-completion-send-0
+     (concat
+      "function __bash_complete_wrapper { eval $__BASH_COMPLETE_WRAPPER; };"
+      "function quote_readline { echo \"$1\"; };"
+      "complete -p")
+     process
+     (current-buffer))
+   (bash-completion-build-alist (current-buffer))))
 
 (defun bash-completion-send-0 (commandline process output-buffer)
   (with-current-buffer (get-buffer-create output-buffer)
