@@ -316,7 +316,7 @@ Return one string containing WORDS."
 ;; TODO: use `shell-quote-argument' instead?
 ;; See also `tramp-shell-quote-argument'.
 (defun bash-completion-quote (word)
-  "Put single quotes around WORD unless it's crearly unnecessary.
+  "Put single quotes around WORD unless it's clearly unnecessary.
 
 If WORD contains characters that aren't known to be harmless, this
 functions adds single quotes around it and return the result."
@@ -341,10 +341,10 @@ This function combines `bash-completion-tokenize' and
   "Process a command line split into TOKENS that end at POS.
 
 This function takes a list of tokens built by
-`bash-completion-tokenize' and returns the variables compgen
-function expect in an association list.
+`bash-completion-tokenize' and returns the variables Bash's
+compgen function expects in an association list.
 
-Return an association list with the current symbol as keys:
+Return an association list with the following symbols as keys:
  line - the relevant command between START and POS (string)
  point - position of the cursor in line (number)
  words - line split into words, unescaped (list of strings)
@@ -388,28 +388,28 @@ if the last token is /var/tmp, it will select:
 
 Return a sublist of TOKENS."
   (nreverse
-   (catch 'bash-completion-return
-     (let ((command nil) (state 'initial))
-       (dolist (token tokens)
-	 (let* ((string (bash-completion-token-string token))
-		(is-terminal
-		 (and (member string '(";" "&" "|" "&&" "||"))
-		      (let ((range (bash-completion-token-range token)))
-			(= (- (cdr range) (car range))
-			   (length string))))))
-	   (cond
-	    (is-terminal
-	     (setq state 'initial)
-	     (setq command nil))
+   (let ((command nil)
+         (state 'initial))
+     (dolist (token tokens)
+       (let* ((string (bash-completion-token-string token))
+              (terminal-p
+               (and (member string '(";" "&" "|" "&&" "||"))
+                    (let ((range (bash-completion-token-range token)))
+                      (= (- (cdr range) (car range))
+                         (length string))))))
+         (cond
+          (terminal-p
+           (setq state 'initial)
+           (setq command nil))
 
-	    ((and (eq state 'initial)
-		  (null (string-match-p "=" string)))
-	     (setq state 'args)
-	     (push token command))
+          ((and (eq state 'initial)
+                (null (string-match-p "=" string)))
+           (setq state 'args)
+           (push token command))
 
-	    ((eq state 'args)
-	     (push token command)))))
-       (or command (last tokens))))))
+          ((eq state 'args)
+           (push token command)))))
+     (or command (last tokens)))))
 
 (defun bash-completion-strings-from-tokens (tokens)
   "Extract the strings from TOKENS.
