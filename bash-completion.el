@@ -744,6 +744,9 @@ which a completion is defined by WORDS."
   "Return the completion specification for COMMAND.
 If there is no completion specification for COMMAND in
 `bash-completion-alist', return nil."
+  (unless bash-completion-initialized
+    (bash-completion-initialize)
+    (setq bash-completion-initialized t))
   (cdr (assoc command bash-completion-alist)))
 
 (defun bash-completion-generate-line (line pos words cword)
@@ -823,41 +826,31 @@ the current buffer.
 Once this command has run without errors, you will find the result
 of the command in the buffer  `bash-completion-output-buffer'."
   (let ((process (or process (get-buffer-process (current-buffer)))))
-    (unless bash-completion-initialized
-      (bash-completion-initialize process)
-      (setq bash-completion-initialized t))
-
-    (bash-completion-send-0 commandline process bash-completion-output-buffer)))
-
-(defun bash-completion-initialize (process)
-  "Initialize `bash-completion-alist' for the shell running in PROCESS."
-  (with-temp-buffer
-    (bash-completion-send-0
-     (concat
-      "function __bash_complete_wrapper { eval $__BASH_COMPLETE_WRAPPER; };"
-      "function quote_readline { echo \"$1\"; };"
-      "complete -p")
-     process
-     (current-buffer))
-   (bash-completion-build-alist (current-buffer))))
-
-(defun bash-completion-send-0 (commandline process output-buffer)
-  (with-current-buffer (get-buffer-create output-buffer)
-    (erase-buffer))
-  (let ((process-buffer (process-buffer process)))
-    (unwind-protect
+    (with-current-buffer (get-buffer-create bash-completion-output-buffer)
+      (erase-buffer))
+    (let ((process-buffer (process-buffer process)))
+      (unwind-protect
+          (with-current-buffer process-buffer
+            ;; prepend a space to COMMANDLINE so that Bash doesn't add it to the
+            ;; history.  Requires HISTCONTROL/HISTIGNORE to be set accordingly.
+            (comint-redirect-send-command-to-process (concat " " commandline) bash-completion-output-buffer process nil t)
+            (while (null comint-redirect-completed)
+              (accept-process-output nil 1)))
+        ;; make sure the clean-up is done in the right buffer.
+        ;; `comint-redirect-completed' is buffer-local and
+        ;; `comint-redirect-cleanup' operates on the current-buffer only.
         (with-current-buffer process-buffer
-          ;; prepend a space to COMMANDLINE so that Bash doesn't add it to the
-          ;; history.  Requires HISTCONTROL/HISTIGNORE to be set accordingly.
-          (comint-redirect-send-command-to-process (concat " " commandline) output-buffer process nil t)
-          (while (null comint-redirect-completed)
-            (accept-process-output nil 1)))
-      ;; make sure the clean-up is done in the right buffer.
-      ;; `comint-redirect-completed' is buffer-local and
-      ;; `comint-redirect-cleanup' operates on the current-buffer only.
-      (with-current-buffer process-buffer
-        (unless comint-redirect-completed
-          (comint-redirect-cleanup))))))
+          (unless comint-redirect-completed
+            (comint-redirect-cleanup)))))))
+
+(defun bash-completion-initialize ()
+  "Initialize `bash-completion-alist' from the ouput of \"complete -p\"."
+  (bash-completion-send
+   (concat
+    "function __bash_complete_wrapper { eval $__BASH_COMPLETE_WRAPPER; };"
+    "function quote_readline { echo \"$1\"; };"
+    "complete -p"))
+  (bash-completion-build-alist bash-completion-output-buffer))
 
 (provide 'bash-completion)
 ;;; bash-completion.el ends here
