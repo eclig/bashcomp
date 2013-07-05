@@ -709,12 +709,11 @@ Return a CONS containing (before . after)."
 
 ;;; ---------- Functions: Bash subprocess
 (defun bash-completion-build-alist (buffer)
-  "Build `bash-completion-alist' with the content of BUFFER.
+  "Build `bash-completion-alist' from the contents of BUFFER.
 
-BUFFER should contains the output of:
-  complete -p
+BUFFER should contain the output of \"complete -p\".
 
-Return `bash-completion-alist', which is slightly parsed version
+Return `bash-completion-alist', which is a slightly parsed version
 of the output of \"complete -p\"."
   (with-current-buffer buffer
     (save-excursion
@@ -729,22 +728,14 @@ of the output of \"complete -p\"."
   bash-completion-alist)
 
 (defun bash-completion-add-to-alist (words)
-  "Add split 'complete' line WORDS to `bash-completion-alist'.
-
-This parses the complete command-line arguments as output by
-  complete -p
-
-This does not work on arbitrary 'complete' calls.
-
-Lines that do not start with the word complete are skipped.
-
-Return `bash-completion-alist'."
-  (when (string= "complete" (car words))
-    (let* ((reverse-wordsrest (nreverse (cdr words)))
-           (command (car reverse-wordsrest))
-           (options (nreverse (cdr reverse-wordsrest))))
+  "Add WORDS, a list of tokens from a single `complete' command, to `bash-completion-alist'.
+The key of the association cons cell is the command name for
+which a completion is defined by WORDS."
+  (when (string= "complete" (pop words))
+    (let ((command (last words))
+          (options (nbutlast words)))
       (when (and command options)
-	(push (cons command options) bash-completion-alist))))
+	(push (append command options) bash-completion-alist))))
   bash-completion-alist)
 
 (defun bash-completion-generate-line (line pos words cword)
