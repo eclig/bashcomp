@@ -175,7 +175,7 @@ For example if the following completion is defined in Bash:
 the following entry is added to `bash-completion-alist':
  (\"cdb\" . (\"-F\" \"_cdargs\"))
 
-See `bash-completion-add-to-alist'.")
+See `bash-completion-build-alist'.")
 
 (defconst bash-completion-wordbreaks '(?\" ?' ?@ ?> ?< ?= ?\; ?| ?& ?\( ?:)
   "List of word break characters.
@@ -342,7 +342,7 @@ This function combines `bash-completion-tokenize' and
 
 This function takes a list of tokens built by
 `bash-completion-tokenize' and returns the variables Bash's
-compgen function expects in an association list.
+`compgen' function expects in an association list.
 
 Return an association list with the following symbols as keys:
  line - the relevant command between START and POS (string)
@@ -708,6 +708,8 @@ Return a CONS containing (before . after)."
      (equal (substring str 0 prefix-len) prefix))))
 
 ;;; ---------- Functions: Bash subprocess
+
+;; TODO: use a hash table
 (defun bash-completion-build-alist (buffer)
   "Build `bash-completion-alist' from the contents of BUFFER.
 
@@ -738,11 +740,17 @@ which a completion is defined by WORDS."
 	(push (append command options) bash-completion-alist))))
   bash-completion-alist)
 
-(defun bash-completion-generate-line (line pos words cword)
-  "Generate a command-line that calls compgen.
+(defun bash-completion-specification (command)
+  "Return the completion specification for COMMAND.
+If there is no completion specification for COMMAND in
+`bash-completion-alist', return nil."
+  (cdr (assoc command bash-completion-alist)))
 
-This function looks into `bash-completion-alist' for a matching compgen
-argument set.  If it finds one, it executes it. Otherwise, it tries to
+(defun bash-completion-generate-line (line pos words cword)
+  "Generate a command-line that calls Bash's `compgen'.
+
+This function looks into `bash-completion-alist' for a matching completion 
+specification.  If it finds one, it uses it. Otherwise, it tries to
 complete the current word as a filename.
 
 LINE is the command-line to complete.
@@ -760,8 +768,9 @@ arguments will be passed to this function or command as:
 Return a Bash command-line that calls compgen to get the completion
 candidates."
   (let* ((command-name (file-name-nondirectory (car words)))
-         (compgen-args (or (cdr (assoc command-name bash-completion-alist))
-                           (cdr (assoc "-D" bash-completion-alist))))
+         (compgen-args (or (bash-completion-specification command-name)
+                           ;; "-D" is the default completion spec
+                           (bash-completion-specification "-D")))
          (stub (nth cword words)) )
     (cond
      ((= cword 0)
