@@ -269,14 +269,15 @@ completion.  Return nil if no match was found."
     (let* ((start (comint-line-beginning-position))
            (pos (point))
            (tokens (bash-completion-tokenize start pos))
-           (open-quote (bash-completion-token-quote (car (last tokens))))
+           (current-token (car (last tokens)))
+           (open-quote (bash-completion-token-quote current-token))
            (parsed (bash-completion-process-tokens tokens pos))
            (line  (cdr (assq 'line parsed)))
            (point (cdr (assq 'point parsed)))
            (cword (cdr (assq 'cword parsed)))
            (words (cdr (assq 'words parsed)))
-           (stub (nth cword words))
-           (completions (bash-completion-comm line point words cword open-quote))
+           (stub  (cdr (assq 'stub parsed)))
+           (completions (bash-completion-comm line point words cword stub open-quote))
            ;; Override configuration for comint-dynamic-simple-complete.
            ;; Bash adds a space suffix automatically.
            (comint-completion-addsuffix nil))
@@ -544,7 +545,7 @@ QUOTE should be nil, ?' or ?\"."
                       (backquote ,args)
                       " ")))
 
-(defun bash-completion-comm (line pos words cword open-quote)
+(defun bash-completion-comm (line pos words cword stub open-quote)
   "Setup the completion environment and call compgen, returning the result.
 
 OPEN-QUOTE should be the quote, a character, that's still open in
@@ -553,9 +554,9 @@ the last word or nil.
 The result is a list of candidates, which might be empty."
   (bash-completion-send
    (concat
-    (bash-completion-generate-line line pos words cword)
+    (bash-completion-generate-line line pos words cword stub)
     " 2>/dev/null"))
-  (bash-completion-extract-candidates (nth cword words) open-quote))
+  (bash-completion-extract-candidates stub open-quote))
 
 (defun bash-completion-extract-candidates (stub open-quote)
   "Extract the completion candidates for STUB.
@@ -769,7 +770,7 @@ If there is no completion specification for COMMAND in
     (setq bash-completion-initialized t))
   (cdr (assoc command bash-completion-alist)))
 
-(defun bash-completion-generate-line (line pos words cword)
+(defun bash-completion-generate-line (line pos words cword stub)
   "Generate a command-line that calls Bash's `compgen'.
 
 This function looks into `bash-completion-alist' for a matching completion 
@@ -793,8 +794,7 @@ candidates."
   (let* ((command-name (file-name-nondirectory (car words)))
          (compgen-args (or (bash-completion-specification command-name)
                            ;; "-D" is the default completion spec
-                           (bash-completion-specification "-D")))
-         (stub (nth cword words)) )
+                           (bash-completion-specification "-D"))))
     (cond
      ((= cword 0)
       ;; a command. let emacs expand executable, let Bash

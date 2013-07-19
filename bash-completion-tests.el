@@ -440,7 +440,7 @@
   (should (string=
            (let ((bash-completion-alist nil)
                  (default-directory "~/test"))
-             (bash-completion-generate-line "hello worl" 7 '("hello" "worl") 1))
+             (bash-completion-generate-line "hello worl" 7 '("hello" "worl") 1 "worl"))
            (format "compgen -P '%s' -f -- worl" bash-completion-candidates-prefix))))
 
 (ert-deftest bash-completion-test-generate-line-custom-completion-no-function-or-command ()
@@ -449,7 +449,7 @@
   (should (string=
            (let ((bash-completion-alist '(("zorg" "-A" "-G" "*.txt")))
                  (default-directory "/test"))
-             (bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1))
+             (bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
            (format "compgen -P '%s' -A -G '*.txt' -- worl" bash-completion-candidates-prefix))))
 
 (ert-deftest bash-completion-test-generate-line-custom-completion-function ()
@@ -458,7 +458,7 @@
   (should (string=
            (let ((bash-completion-alist '(("zorg" "-F" "__zorg")))
                  (default-directory "/test"))
-             (bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1))
+             (bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
            (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl" bash-completion-candidates-prefix))))
 
 (ert-deftest bash-completion-test-generate-line-custom-completion-command ()
@@ -468,7 +468,7 @@
            (let ((bash-completion-alist
                   '(("zorg" "-C" "__zorg")))
                  (default-directory "/test"))
-             (bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1))
+             (bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
            (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl" bash-completion-candidates-prefix))))
 
 (ert-deftest bash-completion-test-starts-with-empty-str ()
