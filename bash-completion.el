@@ -488,7 +488,7 @@ Return TOKEN."
       (forward-char)
       (bash-completion-collect-token token end nil))
      ;; space inside a quote
-     ((and quote next-char (/= quote next-char))
+     ((and quote next-char (/= quote next-char) (< (point) end))
       (forward-char)
       (bash-completion-token-append-string token (char-to-string next-char))
       (bash-completion-collect-token token end quote))

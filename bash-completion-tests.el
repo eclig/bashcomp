@@ -22,8 +22,8 @@
 
 ;;; Commentary:
 ;;
-;; This file defines regression test for the "bash-completion" package.
-;; Eval this form to run the tests:
+;; This file defines regression tests for the "bash-completion" package.
+;; Eval these forms to run the tests:
 ;;
 ;;     (ert '(tag bash-completion))
 ;;     (ert '(tag bash-completion-integration))
@@ -149,6 +149,30 @@
             (bash-completion-strings-from-tokens
              (bash-completion-tokenize 1 (line-end-position))))
            '("a" "-\\hello" "world'- b c"))))
+
+(ert-deftest bash-completion-test-get-token-open-single-quote ()
+  :tags '(bash-completion)
+  "bash-completion-tokenize with a single quote open"
+  (should (string=
+           (sz-testutils-with-buffer
+            '("hello 'world")
+            ;; 123456789
+            (goto-char 7)
+            (bash-completion-token-string
+             (bash-completion-get-token (line-end-position))))
+           "world")))
+
+(ert-deftest bash-completion-test-tokenize-open-single-quote-limited ()
+  :tags '(bash-completion)
+  "bash-completion-tokenize with a single quote open limited"
+  (should (string=
+           (sz-testutils-with-buffer
+            '("hello 'world")
+            ;; 123456789
+            (goto-char 7)
+            (bash-completion-token-string
+             (bash-completion-get-token 10)))
+           "wo")))
 
 (ert-deftest bash-completion-test-tokenize-complex-quote-mix ()
   :tags '(bash-completion)
