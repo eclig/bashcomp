@@ -282,29 +282,28 @@ completion.  Return nil if no match was found."
            ;; Bash adds a space suffix automatically.
            (comint-completion-addsuffix nil))
       (if completions
-          (comint-dynamic-simple-complete stub completions)
-        ;; no standard completion
-        ;; try default (file) completion after a wordbreak
-        (bash-completion-dynamic-try-wordbreak-complete stub open-quote)))))
+          (completion-in-region (if open-quote
+                                    (1+ (bash-completion-token-begin current-token))
+                                  (bash-completion-token-begin current-token))
+                                (bash-completion-token-end current-token)
+                                completions)
+	;; No standard completion found, try file completion after a wordbreak
+	(bash-completion-dynamic-wordbreak-complete current-token pos)))))
 
-(defun bash-completion-dynamic-try-wordbreak-complete (stub open-quote)
-  "Try wordbreak completion on STUB if the complete completion failed.
-
-Split STUB using the wordbreak list and apply compgen default
-completion on the last part.  Return non-nil if a match was found.
-
-If STUB is quoted, the quote character, ' or \", should be passed
-to the parameter OPEN-QUOTE.
-
-This function is not meant to be called outside of
-`bash-completion-dynamic-complete'."
-  (let ((after-wordbreak (bash-completion-after-last-wordbreak stub)))
-    (unless (string= stub after-wordbreak)
-      (bash-completion-send
-       (bash-completion-compgen -f -- ,after-wordbreak))
-      (comint-dynamic-simple-complete
-       after-wordbreak
-       (bash-completion-extract-candidates after-wordbreak open-quote)))))
+(defun bash-completion-dynamic-wordbreak-complete (current-token pos)
+  (let* ((wordbreak-regexp (format "^%s" (mapconcat #'string bash-completion-wordbreaks "")))
+         (token-after-wordbreak (save-excursion
+                                  (skip-chars-backward wordbreak-regexp)
+                                  (bash-completion-get-token pos)))
+         (stub (bash-completion-token-string token-after-wordbreak)))
+    (bash-completion-send (bash-completion-compgen -f -- ,stub))
+    (let ((completions (bash-completion-extract-candidates stub open-quote)))
+      (when completions
+        (completion-in-region (bash-completion-token-begin token-after-wordbreak)
+                              (save-excursion
+                                (skip-chars-forward wordbreak-regexp (bash-completion-token-end current-token))
+                                (point))
+                              completions)))))
 
 ;;; ---------- Functions: parsing and tokenizing
 
@@ -317,9 +316,7 @@ when it shouldn't.
 
 Return one string containing WORDS."
   (if words
-      (mapconcat
-       'bash-completion-quote
-       words " ")
+      (mapconcat 'bash-completion-quote words " ")
     ""))
 
 ;; TODO: use `shell-quote-argument' instead?
