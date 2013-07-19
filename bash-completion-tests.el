@@ -75,7 +75,7 @@
   "bash-completion-tokenize simple extra spaces"
   (should (equal
            (sz-testutils-with-buffer
-            '("  a  hello \n world 	 b \r c  ")
+            '("  a  hello \n world \t b \r c  ")
             (bash-completion-strings-from-tokens
              (bash-completion-tokenize 1 (line-end-position 2))))
            '("a" "hello" "world" "b" "c"))))

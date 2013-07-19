@@ -46,9 +46,9 @@
 ;;   (autoload 'bash-completion-dynamic-complete \"bash-completion\"
 ;;     \"Bash completion hook\")
 ;;   (add-hook 'shell-dynamic-complete-functions
-;; 	'bash-completion-dynamic-complete)
+;;      'bash-completion-dynamic-complete)
 ;;   (add-hook 'shell-command-complete-functions
-;; 	'bash-completion-dynamic-complete)
+;;      'bash-completion-dynamic-complete)
 ;;
 ;;   or simpler, but forces you to load this file at startup:
 ;;
@@ -244,14 +244,14 @@ before it is needed. For an autoload version, add:
   (autoload 'bash-completion-dynamic-complete \"bash-completion\"
     \"Bash completion hook\")
   (add-hook 'shell-dynamic-complete-functions
-  	  'bash-completion-dynamic-complete)
+          'bash-completion-dynamic-complete)
   (add-hook 'shell-command-complete-functions
-  	  'bash-completion-dynamic-complete))
+          'bash-completion-dynamic-complete))
 "
   (add-hook 'shell-dynamic-complete-functions
-	    'bash-completion-dynamic-complete)
+            'bash-completion-dynamic-complete)
   (add-hook 'shell-command-complete-functions
-	    'bash-completion-dynamic-complete))
+            'bash-completion-dynamic-complete))
 
 ;;;###autoload
 (defun bash-completion-dynamic-complete ()
@@ -282,10 +282,10 @@ completion.  Return nil if no match was found."
            ;; Bash adds a space suffix automatically.
            (comint-completion-addsuffix nil))
       (if completions
-	  (comint-dynamic-simple-complete stub completions)
-	;; no standard completion
-	;; try default (file) completion after a wordbreak
-	(bash-completion-dynamic-try-wordbreak-complete stub open-quote)))))
+          (comint-dynamic-simple-complete stub completions)
+        ;; no standard completion
+        ;; try default (file) completion after a wordbreak
+        (bash-completion-dynamic-try-wordbreak-complete stub open-quote)))))
 
 (defun bash-completion-dynamic-try-wordbreak-complete (stub open-quote)
   "Try wordbreak completion on STUB if the complete completion failed.
@@ -332,8 +332,8 @@ functions adds single quotes around it and return the result."
   (if (string-match-p "^[a-zA-Z0-9_./-]*$" word)
       word
     (concat "'"
-	    (replace-regexp-in-string "'" "'\\''" word :literal t)
-	    "'")))
+            (replace-regexp-in-string "'" "'\\''" word :literal t)
+            "'")))
 
 ;; TODO: not used anywhere, except in the regression tests
 (defun bash-completion-parse-line (start pos)
@@ -590,36 +590,36 @@ for directory name detection to work."
   (let ((suffix ""))
     (bash-completion-addsuffix
      (let* ((rebuilt)
-	    (rest (cond
-		   ((bash-completion-starts-with str prefix)
-		    (substring str (length prefix)))
-		   ;; Bash expands the home directory automatically. This is confusing
-		   ;; for comint-dynamic-simple-complete
-		   ((and (bash-completion-starts-with prefix "~")
-			 (bash-completion-starts-with str (expand-file-name "~")))
-		    (substring (concat "~/" (substring str (length (file-name-as-directory (expand-file-name "~")))))
-			       (length prefix)))
-		   ((bash-completion-starts-with prefix str)
-		    ;; completion is a substring of prefix something's
-		    ;; gone wrong. Treat it as one (useless)
-		    ;; candidate.
+            (rest (cond
+                   ((bash-completion-starts-with str prefix)
+                    (substring str (length prefix)))
+                   ;; Bash expands the home directory automatically. This is confusing
+                   ;; for comint-dynamic-simple-complete
+                   ((and (bash-completion-starts-with prefix "~")
+                         (bash-completion-starts-with str (expand-file-name "~")))
+                    (substring (concat "~/" (substring str (length (file-name-as-directory (expand-file-name "~")))))
+                               (length prefix)))
+                   ((bash-completion-starts-with prefix str)
+                    ;; completion is a substring of prefix something's
+                    ;; gone wrong. Treat it as one (useless)
+                    ;; candidate.
                     (setq prefix "")
                     str)
-		   ;; completion sometimes only applies to the last word, as
-		   ;; defined by COMP_WORDBREAKS. This detects and works around
-		   ;; this feature.
-		   ((bash-completion-starts-with
-		     (setq rebuilt (concat (bash-completion-before-last-wordbreak prefix) str))
-		     prefix)
-		    (substring rebuilt (length prefix)))
-		   ;; there is no meaningful link between the prefix and
-		   ;; the string. just append the string to the prefix and
-		   ;; hope for the best.
-		   (t str))))
+                   ;; completion sometimes only applies to the last word, as
+                   ;; defined by COMP_WORDBREAKS. This detects and works around
+                   ;; this feature.
+                   ((bash-completion-starts-with
+                     (setq rebuilt (concat (bash-completion-before-last-wordbreak prefix) str))
+                     prefix)
+                    (substring rebuilt (length prefix)))
+                   ;; there is no meaningful link between the prefix and
+                   ;; the string. just append the string to the prefix and
+                   ;; hope for the best.
+                   (t str))))
        (when (bash-completion-ends-with rest " ")
-	 (setq rest (substring rest 0 -1))
-	 (unless bash-completion-nospace
-	     (setq suffix " ")))
+         (setq rest (substring rest 0 -1))
+         (unless bash-completion-nospace
+           (setq suffix " ")))
        (concat prefix (bash-completion-escape-candidate rest open-quote) suffix)))))
 
 (defmacro bash-completion-filter-map (f list)
@@ -645,7 +645,7 @@ OPEN-QUOTE, either nil, ' or \".
 Return a possibly escaped version of COMPLETION-CANDIDATE."
   (cond
    ((and (null open-quote)
-	 (null (string-match-p "^['\"]" completion-candidate)))
+         (null (string-match-p "^['\"]" completion-candidate)))
     (replace-regexp-in-string "\\([ '\"#]\\)" "\\\\\\1" completion-candidate))
    ((eq ?' open-quote)
     (replace-regexp-in-string "'" "'\\''" completion-candidate :literal t))
@@ -665,8 +665,8 @@ This function looks for a directory called STR relative to the
 buffer-local variable default-directory. If it exists, it returns
 \(concat STR \"/\"). Otherwise it retruns STR."
   (if (and (null (string-match-p bash-completion-known-suffixes-regexp str))
-	   (file-accessible-directory-p (expand-file-name str default-directory)))
-	(concat str "/")
+           (file-accessible-directory-p (expand-file-name str default-directory)))
+      (concat str "/")
     str))
 
 (defun bash-completion-before-last-wordbreak (str)
@@ -704,15 +704,15 @@ Return a CONS containing (before . after)."
   (catch 'bash-completion-return
     (let ((end (- (length str) 1)))
       (while (>= end 0)
-	(when (memq (aref str end) bash-completion-wordbreaks)
-	  (throw 'bash-completion-return (cons (substring str 0 (1+ end)) (substring str (1+ end)))))
-	(setq end (1- end))))
+        (when (memq (aref str end) bash-completion-wordbreaks)
+          (throw 'bash-completion-return (cons (substring str 0 (1+ end)) (substring str (1+ end)))))
+        (setq end (1- end))))
     (cons "" str)))
 
 (defun bash-completion-ends-with (str suffix)
   "Return t if STR ends with SUFFIX."
   (let ((suffix-len (length suffix))
-	(str-len (length str)))
+        (str-len (length str)))
     (or
      (= 0 suffix-len)
      (and
@@ -723,7 +723,7 @@ Return a CONS containing (before . after)."
 (defun bash-completion-starts-with (str prefix)
   "Return t if STR starts with PREFIX."
   (let ((prefix-len (length prefix))
-	(str-len (length str)))
+        (str-len (length str)))
     (and
      (>= str-len prefix-len)
      (equal (substring str 0 prefix-len) prefix))))
@@ -743,11 +743,11 @@ of the output of \"complete -p\"."
       (setq bash-completion-alist nil)
       (goto-char (point-max))
       (while (= 0 (forward-line -1))
-	(bash-completion-add-to-alist
-	 (bash-completion-strings-from-tokens
-	  (bash-completion-tokenize
-	   (line-beginning-position)
-	   (line-end-position)))))))
+        (bash-completion-add-to-alist
+         (bash-completion-strings-from-tokens
+          (bash-completion-tokenize
+           (line-beginning-position)
+           (line-end-position)))))))
   bash-completion-alist)
 
 (defun bash-completion-add-to-alist (words)
@@ -758,7 +758,7 @@ which a completion is defined by WORDS."
     (let ((command (last words))
           (options (nbutlast words)))
       (when (and command options)
-	(push (append command options) bash-completion-alist))))
+        (push (append command options) bash-completion-alist))))
   bash-completion-alist)
 
 (defun bash-completion-specification (command)
