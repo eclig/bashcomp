@@ -445,45 +445,47 @@ This function splits a Bash command line into tokens.  It knows
 about quotes, escape characters and special command separators such
 as ;, | and &&.
 
-Return a list of tokens found between START and END."
+Return a list of tokens found between START and END.  Note that
+the last token might end past END."
   (save-excursion
     (goto-char start)
     (skip-chars-forward " \t\n\r" end)
     (let ((tokens '()))
       (while (< (point) end)
-        (push (bash-completion-get-token end) tokens))
+        (push (bash-completion-get-token) tokens))
       (nreverse tokens))))
 
-(defun bash-completion-get-token (end)
+(defun bash-completion-get-token (&optional limit)
   "Return the next token in the current buffer.
 
 This function expects the point to be either at the start of a
 new token or just after a closing quote in a token.
 
-END specifies the point at which tokenization should stop.
+Optional argument LIMIT specifies the point at which tokenization
+should stop.
 
 Return a new token.  Note that the string in a token is never
 escaped.  For example, if the token is 'hello world', the string
 contains \"hello world\", without the quotes."
-  (bash-completion-collect-token (bash-completion-token-new "" (point) nil) end nil))
+  (bash-completion-collect-token (bash-completion-token-new "" (point) nil) nil limit))
 
-(defun bash-completion-collect-token (token end quote)
+(defun bash-completion-collect-token (token quote &optional limit)
   "Collect characters in TOKEN.
 
 TOKEN is the token currently being built.
 
-Tokenization stops either when the token ends or when buffer
-position END is reached.
-
 QUOTE specifies the currently active quotation character: either
 nil, ?'  or ?\".
+
+Tokenization stops either when the token ends or when the buffer
+position given by optional argument LIMIT (if any) is reached.
 
 Return TOKEN."
   ;; parse the token elements at the current position and
   ;; append them
   (let ((beg (point)))
-    (when (zerop (skip-chars-forward ";&|" end))
-      (skip-chars-forward (bash-completion-nonsep quote) end))
+    (when (zerop (skip-chars-forward ";&|" limit))
+      (skip-chars-forward (bash-completion-nonsep quote) limit))
     (bash-completion-token-append-string
      token
      (buffer-substring-no-properties beg (point))))
@@ -496,26 +498,26 @@ Return TOKEN."
         (when next-char
           (forward-char)
           (bash-completion-token-append-string token (char-to-string next-char))))
-      (bash-completion-collect-token token end quote))
+      (bash-completion-collect-token token quote limit))
      ;; opening quote
      ((and (not quote) next-char (memq next-char '(?\' ?\")))
       (forward-char)
-      (bash-completion-collect-token token end next-char))
+      (bash-completion-collect-token token next-char limit))
      ;; closing quote
      ((and quote next-char (= quote next-char))
       (forward-char)
-      (bash-completion-collect-token token end nil))
+      (bash-completion-collect-token token nil limit))
      ;; space inside a quote
-     ((and quote next-char (/= quote next-char) (< (point) end))
+     ((and quote next-char (/= quote next-char) (or (null limit) (< (point) limit)))
       (forward-char)
       (bash-completion-token-append-string token (char-to-string next-char))
-      (bash-completion-collect-token token end quote))
-     ;; word end
+      (bash-completion-collect-token token quote limit))
+     ;; word end or limit reached
      (t
       (when quote
         (push (cons 'quote quote) token))
       (bash-completion-token-set-end token (point))
-      (skip-chars-forward " \t\n\r" end)
+      (skip-chars-forward " \t\n\r" limit)
       token))))
 
 (defconst bash-completion-nonsep-alist
