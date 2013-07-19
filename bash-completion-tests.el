@@ -234,6 +234,7 @@
            '((line . "a hello world")
              (point . 13)
              (cword . 2)
+             (stub . "world")
              (words "a" "hello" "world")))))
 
 (ert-deftest bash-completion-test-parse-line-cursor-in-the-middle-of-a-word ()
@@ -246,6 +247,7 @@
            '((line . "a hello wo")
              (point . 10)
              (cword . 2)
+             (stub . "wo")
              (words "a" "hello" "wo")))))
 
 (ert-deftest bash-completion-test-parse-line-cursor-at-the-beginning ()
@@ -258,6 +260,7 @@
            '((line . "")
              (point . 0)
              (cword . 0)
+             (stub . "")
              (words "")))))
 
 (ert-deftest bash-completion-test-parse-line-cursor-in-the-middle ()
@@ -270,6 +273,7 @@
            '((line . "a hello ")
              (point . 8)
              (cword . 2)
+             (stub . "")
              (words "a" "hello" "")))))
 
 (ert-deftest bash-completion-test-parse-line-cursor-at-end ()
@@ -282,6 +286,7 @@
            '((line . "a hello world b c")
              (point . 17)
              (cword . 4)
+             (stub . "c")
              (words "a" "hello" "world" "b" "c")))))
 
 (ert-deftest bash-completion-test-parse-line-complex-multi-command-line ()
@@ -294,6 +299,7 @@
            '((line . "make -")
              (point . 6)
              (cword . 1)
+             (stub . "-")
              (words "make" "-")))))
 
 (ert-deftest bash-completion-test-parse-line-pipe ()
@@ -306,6 +312,7 @@
            '((line . "sort -")
              (point . 6)
              (cword . 1)
+             (stub . "-")
              (words "sort" "-")))))
 
 (ert-deftest bash-completion-test-parse-line-escaped-semicolon ()
@@ -318,6 +325,7 @@
            '((line . "find -name '*.txt' -exec echo {} ';' -")
              (point . 38)
              (cword . 7)
+             (stub . "-")
              (words "find" "-name" "*.txt" "-exec" "echo" "{}" ";" "-")))))
 
 (ert-deftest bash-completion-test-parse-line-at-var-assignment ()
@@ -330,6 +338,7 @@
            '((line . "ZORG=t")
              (point . 6)
              (cword . 0)
+             (stub . "ZORG=t")
              (words "ZORG=t")))))
 
 (ert-deftest bash-completion-test-parse-line-cursor-after-end ()
@@ -342,6 +351,7 @@
            '((line . "a hello world b c ")
              (point . 18)
              (cword . 5)
+             (stub . "")
              (words "a" "hello" "world" "b" "c" "")))))
 
 (ert-deftest bash-completion-test-parse-line-with-escaped-quote ()
@@ -354,6 +364,7 @@
            '((line . "cd /vcr/shows/Dexter\\'s")
              (point . 23)
              (cword . 1)
+             (stub . "/vcr/shows/Dexter's")
              (words "cd" "/vcr/shows/Dexter's")))))
 
 (ert-deftest bash-completion-test-add-to-alist-garbage ()

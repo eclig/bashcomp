@@ -202,6 +202,14 @@ completion in colon-separated values.")
   "Return the TOKEN range as a cons: (start . end)."
   (cdr (assq 'range token)))
 
+(defsubst bash-completion-token-begin (token)
+  "Return the buffer position where TOKEN starts."
+  (cadr (assq 'range token)))
+
+(defsubst bash-completion-token-end (token)
+  "Return the buffer position where TOKEN ends."
+  (cddr (assq 'range token)))
+
 (defsubst bash-completion-token-set-end (token pos)
   "Set the end position of TOKEN to the POS."
   (setcdr (bash-completion-token-range token) pos))
@@ -348,6 +356,7 @@ Return an association list with the following symbols as keys:
  line - the relevant command between START and POS (string)
  point - position of the cursor in line (number)
  words - line split into words, unescaped (list of strings)
+ stub - the portion before point of the string to be completed (string)
  cword - 0-based index of the word to be completed in words (number)"
   (bash-completion-parse-line-postprocess
    (bash-completion-parse-current-command tokens) pos))
@@ -359,16 +368,25 @@ This function takes a list of TOKENS created by `bash-completion-tokenize'
 for the current buffer and generate the data needed by compgen functions
 as returned by `bash-completion-parse-line' given the cursor position POS."
   (let* ((first-token (car tokens))
-	 (last-token (car (last tokens)))
-	 (start (or (car (bash-completion-token-range first-token)) pos))
-	 (end   (or (cdr (bash-completion-token-range last-token)) pos))
-	 (words (bash-completion-strings-from-tokens tokens)))
+         (last-token (car (last tokens)))
+         (start (or (bash-completion-token-begin first-token) pos))
+         (end   (or (bash-completion-token-end last-token) pos))
+         (words (bash-completion-strings-from-tokens tokens))
+         (stub  (cond 
+                 ((and (/= start end) (= pos end))
+                  (car (last words)))
+                 ((and last-token (< pos end))
+                  (save-excursion
+                    (goto-char (bash-completion-token-begin last-token))
+                    (bash-completion-token-string (bash-completion-get-token pos))))
+                 (t ""))))
     (when (or (> pos end) (= start end))
       (setq words (append words '(""))))
     (list
      (cons 'line (buffer-substring-no-properties start pos))
      (cons 'point (- pos start))
      (cons 'cword (- (length words) 1))
+     (cons 'stub  stub)
      (cons 'words words))))
 
 (defun bash-completion-parse-current-command (tokens)
