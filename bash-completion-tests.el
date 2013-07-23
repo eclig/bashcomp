@@ -785,11 +785,37 @@
 
 (ert-deftest bash-completion-test-completion-in-region ()
   :tags '(bash-completion)
-  "Simple test for `completion-in-region'."
+  "Simple tests for `completion-in-region'."
+  (should (string=
+           (sz-testutils-with-buffer
+            '("f" cursor "b")
+            (let ((completion-styles '(basic)))
+              (completion-in-region (point-min) (point-max) '("foo-bar" "fox" "fun")))
+            (buffer-string))
+           "foo-bar"))
+
+  (should (string=
+           (sz-testutils-with-buffer
+            '("f" cursor "n")
+            (let ((completion-styles '(basic)))
+              (completion-in-region (point-min) (point-max) '("foo-bar" "fox" "fun")))
+            (buffer-string))
+           "fun"))
+
+
   (should (string=
            (sz-testutils-with-buffer
             '("f-" cursor "b")
-            (completion-in-region (point-min) (point-max) '("foo-bar" "fox" "fun"))
+            (let ((completion-styles '(basic)))
+              (completion-in-region (point-min) (point-max) '("foo-bar" "fox" "fun")))
+            (buffer-string))
+           "f-b"))
+
+  (should (string=
+           (sz-testutils-with-buffer
+            '("f-" cursor "b")
+            (let ((completion-styles '(partial-completion)))
+              (completion-in-region (point-min) (point-max) '("foo-bar" "fox" "fun")))
             (buffer-string))
            "foo-bar")))
 
