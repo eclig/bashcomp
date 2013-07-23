@@ -32,8 +32,9 @@
 
 ;;; Code:
 
-(require 'bash-completion)
 (require 'ert)
+(require 'bash-completion)
+(require 'sz-testutils)
 
 (eval-when-compile
   '(require cl-macs))
