@@ -783,6 +783,16 @@
            (bash-completion-join '("ls" "-l" "/a/b" "/a/b c" "/a/b'c" "$help/d"))
            "ls -l /a/b '/a/b c' '/a/b'\\''c' '$help/d'")))
 
+(ert-deftest bash-completion-test-completion-in-region ()
+  :tags '(bash-completion)
+  "Simple test for `completion-in-region'."
+  (should (string=
+           (sz-testutils-with-buffer
+            '("f-" cursor "b")
+            (completion-in-region (point-min) (point-max) '("foo-bar" "fox" "fun"))
+            (buffer-string))
+           "foo-bar")))
+
 
 (defmacro bash-completion-tests-with-shell (&rest body)
   (let ((shell-buffer (make-symbol "shell-buffer")))
