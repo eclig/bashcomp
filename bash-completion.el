@@ -164,10 +164,10 @@ to remove the extra space Bash adds after a completion."
 
 ;;; ---------- Internal variables and constants
 
-(defvar bash-completion-initialized nil
+(defvar-local bash-completion-initialized nil
   "Non-nil if `bash-completion-alist' was already initialized.")
 
-(defvar bash-completion-alist nil
+(defvar-local bash-completion-alist nil
   "Maps from command name to the 'complete' arguments.
 
 For example if the following completion is defined in Bash:

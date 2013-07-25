@@ -439,7 +439,8 @@
   :tags '(bash-completion)
   "bash-completion-generate-line no custom completion"
   (should (string=
-           (let ((bash-completion-alist nil)
+           (let ((bash-completion-initialized t)
+                 (bash-completion-alist nil)
                  (default-directory "~/test"))
              (bash-completion-generate-line "hello worl" 7 '("hello" "worl") 1 "worl"))
            (format "compgen -P '%s' -f -- worl" bash-completion-candidates-prefix))))
@@ -448,7 +449,8 @@
   :tags '(bash-completion)
   "bash-completion-generate-line custom completion no function or command"
   (should (string=
-           (let ((bash-completion-alist '(("zorg" "-A" "-G" "*.txt")))
+           (let ((bash-completion-initialized t)
+                 (bash-completion-alist '(("zorg" "-A" "-G" "*.txt")))
                  (default-directory "/test"))
              (bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
            (format "compgen -P '%s' -A -G '*.txt' -- worl" bash-completion-candidates-prefix))))
@@ -457,7 +459,8 @@
   :tags '(bash-completion)
   "bash-completion-generate-line custom completion function"
   (should (string=
-           (let ((bash-completion-alist '(("zorg" "-F" "__zorg")))
+           (let ((bash-completion-initialized t)
+                 (bash-completion-alist '(("zorg" "-F" "__zorg")))
                  (default-directory "/test"))
              (bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
            (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl" bash-completion-candidates-prefix))))
@@ -466,7 +469,8 @@
   :tags '(bash-completion)
   "bash-completion-generate-line custom completion command"
   (should (string=
-           (let ((bash-completion-alist
+           (let ((bash-completion-initialized t)
+                 (bash-completion-alist
                   '(("zorg" "-C" "__zorg")))
                  (default-directory "/test"))
              (bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
@@ -841,9 +845,11 @@
 (ert-deftest bash-completion-test-interaction ()
   :tags '(bash-completion-integration)
   "bash-completion interaction"
+  (should-not bash-completion-initialized)
+  (should (null bash-completion-alist))
   (should (member "help "
                   (bash-completion-tests-with-shell
-                   (bash-completion-comm "hel" 4 '("hel") 0 nil)))))
+                   (bash-completion-comm "hel" 4 '("hel") 0 "hel" nil)))))
 
 (ert-deftest bash-completion-test-execute-one-completion ()
   :tags '(bash-completion-integration)
@@ -860,9 +866,12 @@
   :tags '(bash-completion-integration)
   "bash-completion execute wordbreak completion"
   (should (equal (bash-completion-tests-with-shell
-                  (insert "export PATH=/sbin:/bi")
-                  (bash-completion-dynamic-complete))
-                 "export PATH=/sbin:/bin/")))
+                  (let ((pos (point)))
+                    (insert "export PATH=/sbin:/bi")
+                    (bash-completion-dynamic-complete)
+                    (sit-for 1)
+                    (buffer-substring-no-properties pos (point))))
+                 "export PATH=/sbin:/bin")))
 
 (provide 'bash-completion-tests)
 ;;; bash-completion-tests.el ends here
