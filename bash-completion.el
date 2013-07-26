@@ -742,10 +742,8 @@ of the output of \"complete -p\"."
       (while (= 0 (forward-line -1))
         (bash-completion-add-to-alist
          (bash-completion-strings-from-tokens
-          (bash-completion-tokenize
-           (line-beginning-position)
-           (line-end-position)))))))
-  bash-completion-alist)
+          (bash-completion-tokenize (line-beginning-position) (line-end-position))))))
+    bash-completion-alist))
 
 (defun bash-completion-add-to-alist (words)
   "Add WORDS, a list of tokens from a single `complete' command, to `bash-completion-alist'.
@@ -867,7 +865,7 @@ of the command in the buffer  `bash-completion-output-buffer'."
     "function __bash_complete_wrapper { eval $__BASH_COMPLETE_WRAPPER; };"
     "function quote_readline { echo \"$1\"; };"
     "complete -p"))
-  (bash-completion-build-alist bash-completion-output-buffer))
+  (setq bash-completion-alist (bash-completion-build-alist bash-completion-output-buffer)))
 
 (provide 'bash-completion)
 ;;; bash-completion.el ends here
