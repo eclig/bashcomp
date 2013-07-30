@@ -368,46 +368,60 @@
              (stub . "/vcr/shows/Dexter's")
              (words "cd" "/vcr/shows/Dexter's")))))
 
-(ert-deftest bash-completion-test-add-to-alist-garbage ()
+(ert-deftest bash-completion-test-add-rule-garbage ()
   :tags '(bash-completion)
-  "bash-completion-add-to-alist garbage"
-  (should-not (let ((bash-completion-alist nil))
-                (bash-completion-add-to-alist '("just" "some" "garbage")))))
+  "bash-completion-add-rule garbage"
+  (should (let ((rules (make-hash-table :test 'equal)))
+            (bash-completion-add-rule (list "just" "some" "garbage") rules)
+            (zerop (hash-table-count rules)))))
 
-(ert-deftest bash-completion-test-add-to-alist-empty ()
+(ert-deftest bash-completion-test-add-rule-empty ()
   :tags '(bash-completion)
-  "bash-completion-add-to-alist empty"
-  (should-not (let ((bash-completion-alist nil))
-                (bash-completion-add-to-alist 'nil))))
+  "bash-completion-add-rule empty"
+  (should (let ((rules (make-hash-table :test 'equal)))
+            (bash-completion-add-rule nil rules)
+            (zerop (hash-table-count rules)))))
 
-(ert-deftest bash-completion-test-add-to-alist-empty-string ()
+(ert-deftest bash-completion-test-add-rule-empty-string ()
   :tags '(bash-completion)
-  "bash-completion-add-to-alist empty string"
-  (should-not (let ((bash-completion-alist nil))
-                (bash-completion-add-to-alist '("")))))
+  "bash-completion-add-rule empty string"
+  (should (let ((rules (make-hash-table :test 'equal)))
+            (bash-completion-add-rule (list "") rules)
+            (zerop (hash-table-count rules)))))
 
-(ert-deftest bash-completion-test-add-to-alist-empty-complete ()
+(ert-deftest bash-completion-test-add-rule-empty-complete ()
   :tags '(bash-completion)
-  "bash-completion-add-to-alist empty complete"
-  (should-not (let ((bash-completion-alist nil))
-                (bash-completion-add-to-alist '("complete")))))
+  "bash-completion-add-rule empty complete"
+  (should (let ((rules (make-hash-table :test 'equal)))
+            (bash-completion-add-rule (list "complete") rules)
+            (zerop (hash-table-count rules)))))
 
-(ert-deftest bash-completion-test-add-to-alist-one-command ()
+(ert-deftest bash-completion-test-add-rule-one-command ()
   :tags '(bash-completion)
-  "bash-completion-add-to-alist one command"
+  "bash-completion-add-rule one command"
   (should (equal
-           (let ((bash-completion-alist nil))
-             (bash-completion-add-to-alist (list "complete" "-e" "-F" "_cdargs_aliases" "cdb")))
-           '(("cdb" "-e" "-F" "_cdargs_aliases")))))
+           (let ((rules (make-hash-table :test 'equal)))
+             (bash-completion-add-rule (list "complete" "-e" "-F" "_cdargs_aliases" "cdb") rules)
+             (gethash "cdb" rules))
+           '("-e" "-F" "_cdargs_aliases"))))
 
-(ert-deftest bash-completion-test-build-alist ()
+(ert-deftest bash-completion-test-initialize-rules ()
   :tags '(bash-completion)
-  "bash-completion-build-alist"
+  "bash-completion-initialize-rules"
   (should (equal
            (sz-testutils-with-buffer
-            "\ncomplete -F _cdargs_aliases cdb\ncomplete -F complete_projects project\ncomplete -F complete_projects pro\ncomplete -F _cdargs_aliases cv\ncomplete -F _cdargs_aliases cb\ngarbage\n"
-            (let ((bash-completion-alist '(garbage)))
-              (bash-completion-build-alist (current-buffer))))
+            (concat "\n"
+                    "complete -F _cdargs_aliases cdb\n"
+                    "complete -F complete_projects project\n"
+                    "complete -F complete_projects pro\n"
+                    "complete -F _cdargs_aliases cv\n"
+                    "complete -F _cdargs_aliases cb\n"
+                    "garbage\n")
+            (let ((rules (make-hash-table :test 'equal)))
+              (bash-completion-initialize-rules (current-buffer) rules)
+              (mapcar (lambda (cmd)
+                        (cons cmd (gethash cmd rules)))
+                      (list "cdb" "project" "pro" "cv" "cb"))))
            '(("cdb" "-F" "_cdargs_aliases")
              ("project" "-F" "complete_projects")
              ("pro" "-F" "complete_projects")
@@ -440,7 +454,7 @@
   "bash-completion-generate-line no custom completion"
   (should (string=
            (let ((bash-completion-initialized t)
-                 (bash-completion-alist nil)
+                 (bash-completion-rules (make-hash-table :test 'equal))
                  (default-directory "~/test"))
              (bash-completion-generate-line "hello worl" 7 '("hello" "worl") 1 "worl"))
            (format "compgen -P '%s' -f -- worl" bash-completion-candidates-prefix))))
@@ -450,8 +464,9 @@
   "bash-completion-generate-line custom completion no function or command"
   (should (string=
            (let ((bash-completion-initialized t)
-                 (bash-completion-alist '(("zorg" "-A" "-G" "*.txt")))
+                 (bash-completion-rules (make-hash-table :test 'equal))
                  (default-directory "/test"))
+             (bash-completion-add-rule (list "complete" "-A" "-G" "*.txt" "zorg") bash-completion-rules)
              (bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
            (format "compgen -P '%s' -A -G '*.txt' -- worl" bash-completion-candidates-prefix))))
 
@@ -460,8 +475,9 @@
   "bash-completion-generate-line custom completion function"
   (should (string=
            (let ((bash-completion-initialized t)
-                 (bash-completion-alist '(("zorg" "-F" "__zorg")))
+                 (bash-completion-rules (make-hash-table :test 'equal))
                  (default-directory "/test"))
+             (bash-completion-add-rule (list "complete" "-F" "__zorg" "zorg") bash-completion-rules)
              (bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
            (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl" bash-completion-candidates-prefix))))
 
@@ -470,9 +486,9 @@
   "bash-completion-generate-line custom completion command"
   (should (string=
            (let ((bash-completion-initialized t)
-                 (bash-completion-alist
-                  '(("zorg" "-C" "__zorg")))
+                 (bash-completion-rules (make-hash-table :test 'equal))
                  (default-directory "/test"))
+             (bash-completion-add-rule (list "complete" "-C" "__zorg" "zorg") bash-completion-rules)
              (bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
            (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl" bash-completion-candidates-prefix))))
 
@@ -846,7 +862,7 @@
   :tags '(bash-completion-integration)
   "bash-completion interaction"
   (should-not bash-completion-initialized)
-  (should (null bash-completion-alist))
+  (should-not (hash-table-p bash-completion-rules))
   (should (member "help "
                   (bash-completion-tests-with-shell
                    (bash-completion-comm "hel" 4 '("hel") 0 "hel" nil)))))

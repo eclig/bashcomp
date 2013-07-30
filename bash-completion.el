@@ -165,17 +165,10 @@ to remove the extra space Bash adds after a completion."
 ;;; ---------- Internal variables and constants
 
 (defvar-local bash-completion-initialized nil
-  "Non-nil if `bash-completion-alist' was already initialized.")
+  "Non-nil if `bash-completion' was already initialized.")
 
-(defvar-local bash-completion-alist nil
-  "Maps from command name to the 'complete' arguments.
-
-For example if the following completion is defined in Bash:
-  complete -F _cdargs_aliases cdb
-the following entry is added to `bash-completion-alist':
- (\"cdb\" . (\"-F\" \"_cdargs\"))
-
-See `bash-completion-build-alist'.")
+(defvar-local bash-completion-rules nil
+  "Mapping from command names to Bash's `complete' rules.")
 
 (defconst bash-completion-wordbreaks '(?\" ?' ?@ ?> ?< ?= ?\; ?| ?& ?\( ?:)
   "List of word break characters.
@@ -727,50 +720,40 @@ Return a CONS containing (before . after)."
 
 ;;; ---------- Functions: Bash subprocess
 
-;; TODO: use a hash table
-(defun bash-completion-build-alist (buffer)
-  "Build `bash-completion-alist' from the contents of BUFFER.
-
-BUFFER should contain the output of \"complete -p\".
-
-Return `bash-completion-alist', which is a slightly parsed version
-of the output of \"complete -p\"."
+(defun bash-completion-initialize-rules (buffer rules)
+  "Initialize hash table RULES from the contents of BUFFER.
+BUFFER should contain the output of \"complete -p\"."
   (with-current-buffer buffer
     (save-excursion
-      (setq bash-completion-alist nil)
       (goto-char (point-max))
       (while (= 0 (forward-line -1))
-        (bash-completion-add-to-alist
+        (bash-completion-add-rule
          (bash-completion-strings-from-tokens
-          (bash-completion-tokenize (line-beginning-position) (line-end-position))))))
-    bash-completion-alist))
+          (bash-completion-tokenize (line-beginning-position) (line-end-position)))
+         rules)))))
 
-(defun bash-completion-add-to-alist (words)
-  "Add WORDS, a list of tokens from a single `complete' command, to `bash-completion-alist'.
-The key of the association cons cell is the command name for
-which a completion is defined by WORDS."
+(defun bash-completion-add-rule (words rules)
+  "Add the completion rule defined by WORDS to the hash table RULES.
+The hash key is the command name for which a the rule is defined."
   (when (string= "complete" (pop words))
-    (let ((command (last words))
+    (let ((command (car (last words)))
           (options (nbutlast words)))
       (when (and command options)
-        (push (append command options) bash-completion-alist))))
-  bash-completion-alist)
+        (puthash command options rules)))))
 
 (defun bash-completion-specification (command)
-  "Return the completion specification for COMMAND.
-If there is no completion specification for COMMAND in
-`bash-completion-alist', return nil."
+  "Return the completion specification for COMMAND or nil, if none found."
   (unless bash-completion-initialized
     (bash-completion-initialize)
     (setq bash-completion-initialized t))
-  (cdr (assoc command bash-completion-alist)))
+  (gethash command bash-completion-rules))
 
 (defun bash-completion-generate-line (line pos words cword stub)
   "Generate a command-line that calls Bash's `compgen'.
 
-This function looks into `bash-completion-alist' for a matching completion 
-specification.  If it finds one, it uses it. Otherwise, it tries to
-complete the current word as a filename.
+This function looks for a completion rule matching the command
+name in LINE.  If it finds one, it uses it.  Otherwise, it tries
+to complete the current word as a filename.
 
 LINE is the command-line to complete.
 POS is the position of the cursor on LINE
@@ -828,7 +811,7 @@ Call this function if you have updated your ~/.bashrc or any Bash init scripts
 and would like Bash completion in Emacs to take these changes into account."
   (interactive)
   (setq bash-completion-initialized nil)
-  (setq bash-completion-alist nil))
+  (setq bash-completion-rules nil))
 
 (defun bash-completion-send (commandline &optional process)
   "Send COMMANDLINE to the Bash process.
@@ -859,13 +842,14 @@ of the command in the buffer  `bash-completion-output-buffer'."
             (comint-redirect-cleanup)))))))
 
 (defun bash-completion-initialize ()
-  "Initialize `bash-completion-alist' from the ouput of \"complete -p\"."
+  "Initialize `bash-completion'."
   (bash-completion-send
    (concat
     "function __bash_complete_wrapper { eval $__BASH_COMPLETE_WRAPPER; };"
     "function quote_readline { echo \"$1\"; };"
     "complete -p"))
-  (setq bash-completion-alist (bash-completion-build-alist bash-completion-output-buffer)))
+  (setq bash-completion-rules (make-hash-table :test 'equal))
+  (bash-completion-initialize-rules bash-completion-output-buffer bash-completion-rules))
 
 (provide 'bash-completion)
 ;;; bash-completion.el ends here
