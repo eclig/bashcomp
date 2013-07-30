@@ -518,11 +518,15 @@
   (should (string=
            (cl-letf ((bash-completion-initialized t)
                      (process 'something-else)
+                     (kill-buffer-query-functions nil)
+                     ((symbol-function 'get-buffer-process)
+                      (lambda (buffer)
+                        'process))
                      ((symbol-function 'process-buffer)
                       (lambda (process)
                         (unless (eq process 'process)
-                          (error "unexpected: %s" process))
-                        bash-completion-output-buffer))
+                          (error "unexpected process: %s" process))
+                        (current-buffer)))
                      ((symbol-function 'comint-redirect-send-command-to-process)
                       (lambda (command output-buffer process echo no-display)
                         (unless (eq process 'process)
@@ -535,8 +539,8 @@
                         (insert "line1\nline2\n")
                         (setq comint-redirect-completed t)
                         t)))
-             (bash-completion-send "cmd" 'process)
-             (with-current-buffer bash-completion-output-buffer
+             (with-temp-buffer
+               (bash-completion-send "cmd" (current-buffer))
                (buffer-string)))
            "line1\nline2\n")))
 
@@ -715,8 +719,7 @@
            (let ((bash-completion-nospace nil))
              (sz-testutils-with-buffer
               (format "%shello world\n%shello \n\n" bash-completion-candidates-prefix bash-completion-candidates-prefix)
-              (let ((bash-completion-output-buffer (current-buffer)))
-                (bash-completion-extract-candidates "hello" nil))))
+              (bash-completion-extract-candidates (current-buffer) "hello" nil)))
            '("hello\\ world" "hello "))))
 
 (ert-deftest bash-completion-test-extract-candidates-with-spurious-output ()
@@ -726,8 +729,7 @@
            (let ((bash-completion-nospace nil))
              (sz-testutils-with-buffer
               (format "%shello world\nspurious \n\n" bash-completion-candidates-prefix)
-              (let ((bash-completion-output-buffer (current-buffer)))
-                (bash-completion-extract-candidates "hello" nil))))
+              (bash-completion-extract-candidates (current-buffer) "hello" nil)))
            '("hello\\ world"))))
 
 (ert-deftest bash-completion-test-nonsep ()
