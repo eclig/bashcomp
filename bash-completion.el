@@ -773,8 +773,9 @@ arguments will be passed to this function or command as:
 
 Return a Bash command-line that calls compgen to get the completion
 candidates."
-  (let* ((command-name (file-name-nondirectory (car words)))
-         (compgen-args (or (bash-completion-specification command-name)
+  (let* ((command (car words))
+         (compgen-args (or (bash-completion-specification command)
+                           (bash-completion-specification (file-name-nondirectory command))
                            ;; "-D" is the default completion spec
                            (bash-completion-specification "-D"))))
     (cond
@@ -788,7 +789,7 @@ candidates."
       (bash-completion-compgen -f -- ,stub))
 
      ((or (member "-F" compgen-args) (member "-C" compgen-args))
-      ;; custom completion with a function of command
+      ;; custom completion with a function or command
       (let* ((args (copy-tree compgen-args))
              (function (or (member "-F" args) (member "-C" args)))
              (function-name (car (cdr function))))
