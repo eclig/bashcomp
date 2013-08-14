@@ -470,6 +470,35 @@
              (bash-completion-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
            (format "compgen -P '%s' -A -G '*.txt' -- worl" bash-completion-candidates-prefix))))
 
+(ert-deftest bash-completion-test-bash-completion-specification ()
+  :tags '(bash-completion)
+  "bash-completion-specification"
+  (let ((bash-completion-initialized t)
+        (bash-completion-rules (make-hash-table :test 'equal))
+        (default-directory "/test"))
+    (bash-completion-add-rule (list "complete" "-A" "-G" "*.txt" "zorg") bash-completion-rules)
+    (let ((system-type 'toto))
+      (should
+       (equal (bash-completion-specification "zorg")
+              '("-A" "-G" "*.txt")))
+      (should
+       (equal (bash-completion-specification "/bin/zorg")
+              '("-A" "-G" "*.txt")))
+      (should-not (bash-completion-specification "zorg.exe"))
+      (should-not (bash-completion-specification "/bin/zorg.exe")))
+
+    (let ((system-type 'windows-nt))
+      (should
+       (equal (bash-completion-specification "zorg")
+              '("-A" "-G" "*.txt")))
+      (should-not (bash-completion-specification "zorgo.exe"))
+      (should
+       (equal (bash-completion-specification "zorg.exe")
+              '("-A" "-G" "*.txt")))
+      (should
+       (equal (bash-completion-specification "c:\\foo\\bar\\zorg.exe")
+              '("-A" "-G" "*.txt"))))))
+
 (ert-deftest bash-completion-test-generate-line-custom-completion-function ()
   :tags '(bash-completion)
   "bash-completion-generate-line custom completion function"

@@ -751,7 +751,14 @@ The hash key is the command name for which a the rule is defined."
   (unless bash-completion-initialized
     (bash-completion-initialize)
     (setq bash-completion-initialized t))
-  (gethash command bash-completion-rules))
+  (or (gethash command bash-completion-rules)
+      (gethash (file-name-nondirectory command) bash-completion-rules)
+      (and (memq system-type '(ms-dos windows-nt))
+           (gethash
+            (file-name-nondirectory (file-name-sans-extension command))
+            bash-completion-rules))
+      ;; "-D" is the default completion spec
+      (gethash "-D" bash-completion-rules)))
 
 (defun bash-completion-generate-line (line pos words cword stub)
   "Generate a command-line that calls Bash's `compgen'.
@@ -775,10 +782,7 @@ arguments will be passed to this function or command as:
 Return a Bash command-line that calls compgen to get the completion
 candidates."
   (let* ((command (car words))
-         (compgen-args (or (bash-completion-specification command)
-                           (bash-completion-specification (file-name-nondirectory command))
-                           ;; "-D" is the default completion spec
-                           (bash-completion-specification "-D"))))
+         (compgen-args (bash-completion-specification command)))
     (cond
      ((= cword 0)
       ;; a command. let emacs expand executable, let Bash
