@@ -551,6 +551,9 @@
                      ((symbol-function 'get-buffer-process)
                       (lambda (buffer)
                         'process))
+                     ((symbol-function 'processp)
+                      (lambda (process)
+                        (eq process 'process)))
                      ((symbol-function 'process-buffer)
                       (lambda (process)
                         (unless (eq process 'process)
@@ -569,7 +572,7 @@
                         (setq comint-redirect-completed t)
                         t)))
              (with-temp-buffer
-               (bash-completion-send "cmd" (current-buffer))
+               (bash-completion-send "cmd" 'process (current-buffer))
                (buffer-string)))
            "line1\nline2\n")))
 
