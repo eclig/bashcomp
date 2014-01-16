@@ -269,18 +269,21 @@ completion.  Return nil if no match was found."
            (cword (cdr (assq 'cword parsed)))
            (words (cdr (assq 'words parsed)))
            (stub  (cdr (assq 'stub parsed)))
-           (completions (bacom-comm process line point words cword stub open-quote))
            ;; Override configuration for comint-dynamic-simple-complete.
            ;; Bash adds a space suffix automatically.
            (comint-completion-addsuffix nil))
-      (if completions
-          (completion-in-region (if open-quote
-                                    (1+ (bacom-token-begin current-token))
-                                  (bacom-token-begin current-token))
-                                (bacom-token-end current-token)
-                                completions)
-	;; No standard completion found, try filename completion after a wordbreak
-	(bacom-dynamic-wordbreak-complete process current-token pos)))))
+      (unless bacom-initialized
+        (bacom-initialize process)
+        (setq bacom-initialized t))
+      (let ((completions (bacom-comm process line point words cword stub open-quote)))
+        (if completions
+            (completion-in-region (if open-quote
+                                      (1+ (bacom-token-begin current-token))
+                                    (bacom-token-begin current-token))
+                                  (bacom-token-end current-token)
+                                  completions)
+          ;; No standard completion found, try filename completion after a wordbreak
+          (bacom-dynamic-wordbreak-complete process current-token pos))))))
 
 (defun bacom-dynamic-wordbreak-complete (process current-token pos)
   (let* ((wordbreak-regexp (format "^%s" (mapconcat #'string bacom-wordbreaks "")))
@@ -545,9 +548,6 @@ OPEN-QUOTE should be the quote, a character, that's still open in
 the last word or nil.
 
 The result is a list of candidates, which might be empty."
-  (unless bacom-initialized
-    (bacom-initialize process)
-    (setq bacom-initialized t))
   (bacom-call-with-temp-buffer
    (lambda (temp-buffer)
      (bacom-send

@@ -899,7 +899,9 @@
   (should-not (hash-table-p bacom-rules))
   (should (member "help "
                   (bacom-tests-with-shell
-                   (bacom-comm (get-buffer-process (current-buffer)) "hel" 4 '("hel") 0 "hel" nil)))))
+                   (let ((process (get-buffer-process (current-buffer))))
+                     (bacom-initialize process)
+                     (bacom-comm process "hel" 4 '("hel") 0 "hel" nil))))))
 
 (ert-deftest bacom-test-execute-one-completion ()
   :tags '(bacom-integration)
