@@ -145,8 +145,8 @@ once it's been installed.
 
 Setting this variable to t is NOT enough to enable Bash completion.
 Bash completion is only available in the environment for which
-`bacom-dynamic-complete' has been registered. See
-`bacom-setup' for that."
+`bacom-dynamic-complete' has been registered. See `bacom-setup'
+for that."
   :type '(boolean)
   :group 'bacom)
 
@@ -257,7 +257,8 @@ out what the current command is and calls
 If a match was found, it is displayed as is usual for comint
 completion.  Return nil if no match was found."
   (when bacom-enabled
-    (let* ((start (comint-line-beginning-position))
+    (let* ((process (get-buffer-process (current-buffer)))
+           (start (comint-line-beginning-position))
            (pos (point))
            (tokens (bacom-tokenize start pos))
            (current-token (car (last tokens)))
@@ -268,7 +269,7 @@ completion.  Return nil if no match was found."
            (cword (cdr (assq 'cword parsed)))
            (words (cdr (assq 'words parsed)))
            (stub  (cdr (assq 'stub parsed)))
-           (completions (bacom-comm line point words cword stub open-quote))
+           (completions (bacom-comm process line point words cword stub open-quote))
            ;; Override configuration for comint-dynamic-simple-complete.
            ;; Bash adds a space suffix automatically.
            (comint-completion-addsuffix nil))
@@ -279,11 +280,10 @@ completion.  Return nil if no match was found."
                                 (bacom-token-end current-token)
                                 completions)
 	;; No standard completion found, try filename completion after a wordbreak
-	(bacom-dynamic-wordbreak-complete current-token pos)))))
+	(bacom-dynamic-wordbreak-complete process current-token pos)))))
 
-(defun bacom-dynamic-wordbreak-complete (current-token pos)
-  (let* ((process (get-buffer-process (current-buffer)))
-         (wordbreak-regexp (format "^%s" (mapconcat #'string bacom-wordbreaks "")))
+(defun bacom-dynamic-wordbreak-complete (process current-token pos)
+  (let* ((wordbreak-regexp (format "^%s" (mapconcat #'string bacom-wordbreaks "")))
          (token-after-wordbreak (save-excursion
                                   (skip-chars-backward wordbreak-regexp)
                                   (bacom-get-token pos)))
@@ -538,26 +538,25 @@ QUOTE should be nil, ?' or ?\"."
                       (backquote ,args)
                       " ")))
 
-(defun bacom-comm (line pos words cword stub open-quote)
-  "Setup the completion environment and call compgen, returning the result.
+(defun bacom-comm (process line pos words cword stub open-quote)
+  "Setup the completion environment and call compgen on process PROCESS.
 
 OPEN-QUOTE should be the quote, a character, that's still open in
 the last word or nil.
 
 The result is a list of candidates, which might be empty."
-  (let ((process (get-buffer-process (current-buffer))))
-    (unless bacom-initialized
-      (bacom-initialize process)
-      (setq bacom-initialized t))
-    (bacom-call-with-temp-buffer
-     (lambda (temp-buffer)
-       (bacom-send
-        (concat
-         (bacom-generate-line line pos words cword stub)
-         " 2>/dev/null")
-        process
-        temp-buffer)
-       (bacom-extract-candidates temp-buffer stub open-quote)))))
+  (unless bacom-initialized
+    (bacom-initialize process)
+    (setq bacom-initialized t))
+  (bacom-call-with-temp-buffer
+   (lambda (temp-buffer)
+     (bacom-send
+      (concat
+       (bacom-generate-line line pos words cword stub)
+       " 2>/dev/null")
+      process
+      temp-buffer)
+     (bacom-extract-candidates temp-buffer stub open-quote))))
 
 (defun bacom-extract-candidates (buffer stub open-quote)
   "Extract the completion candidates for STUB.
