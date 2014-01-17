@@ -545,7 +545,12 @@ The result is a list of candidates, which might also be empty."
          " 2>/dev/null")
         process
         temp-buffer)
-       (bacom-extract-candidates temp-buffer stub open-quote)))))
+       (let ((completions (bacom-extract-candidates temp-buffer stub open-quote)))
+         (if (equal completions '("*bacom_restart*"))
+             (progn
+               (bacom-initialize process)
+               (bacom-comm process parsed open-quote))
+           completions))))))
 
 (defun bacom-extract-candidates (buffer stub open-quote)
   "Extract the completion candidates for STUB.
@@ -559,7 +564,10 @@ The completion candidates are subject to post-processing by
   (bacom-filter-map
    (lambda (str)
      (and (bacom-starts-with str bacom-candidates-prefix)
-          (bacom-postprocess (substring str (length bacom-candidates-prefix)) stub open-quote)))
+          (let ((candidate (substring str (length bacom-candidates-prefix))))
+            (if (string= candidate "*bacom_restart*")
+                candidate
+             (bacom-postprocess candidate stub open-quote)))))
    (with-current-buffer buffer
      (save-match-data
        (split-string (buffer-string) "\n" t)))))
@@ -843,7 +851,7 @@ CMD, if any, goes into the buffer given by OUTPUT-BUFFER."
      (lambda (temp-buffer)
        (bacom-send
         (concat
-         "function __bash_complete_wrapper { eval $__BASH_COMPLETE_WRAPPER; };"
+         "function __bash_complete_wrapper { eval $__BASH_COMPLETE_WRAPPER; test $? -eq 124 && COMPREPLY=('*bacom_restart*');};"
          "function quote_readline { echo \"$1\"; };"
          "complete -p")
         process

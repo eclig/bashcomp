@@ -884,5 +884,31 @@
                     (buffer-substring-no-properties pos (point))))
                  "export PATH=/sbin:/bin")))
 
+(ert-deftest bacom-test-completion-with-custom-rule ()
+  :tags '(bacom-integration)
+  "bacom completion with custom rule"
+  (should (equal (bacom-tests-with-shell
+                  (comint-send-string (current-buffer) "complete -W 'abc aeiou' foo\n")
+                  (sit-for 1)
+                  (let ((pos (point)))
+                    (insert "foo ab")
+                    (bacom-dynamic-complete)
+                    (sit-for 1)
+                    (buffer-substring-no-properties pos (point))))
+                 "foo abc")))
+
+(ert-deftest bacom-test-completion-with-restart ()
+  :tags '(bacom-integration)
+  "bacom completion with restart"
+  (should (equal (bacom-tests-with-shell
+                  (comint-send-string (current-buffer) "complete -F _foo foo; _foo () { complete -W 'abc aeiou' foo; return 124; }\n")
+                  (sit-for 1)
+                  (let ((pos (point)))
+                    (insert "foo ab")
+                    (bacom-dynamic-complete)
+                    (sit-for 1)
+                    (buffer-substring-no-properties pos (point))))
+                 "foo abc")))
+
 (provide 'bacom-tests)
 ;;; bacom-tests.el ends here
