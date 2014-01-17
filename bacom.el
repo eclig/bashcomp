@@ -127,6 +127,7 @@
 ;; $Id$
 ;;
 
+(require 'cl-lib)
 (require 'comint)
 
 ;;; Code:
@@ -264,18 +265,13 @@ completion.  Return nil if no match was found."
            (current-token (car (last tokens)))
            (open-quote (bacom-token-quote current-token))
            (parsed (bacom-process-tokens tokens pos))
-           (line  (cdr (assq 'line parsed)))
-           (point (cdr (assq 'point parsed)))
-           (cword (cdr (assq 'cword parsed)))
-           (words (cdr (assq 'words parsed)))
-           (stub  (cdr (assq 'stub parsed)))
            ;; Override configuration for comint-dynamic-simple-complete.
            ;; Bash adds a space suffix automatically.
            (comint-completion-addsuffix nil))
       (unless bacom-initialized
         (bacom-initialize process)
         (setq bacom-initialized t))
-      (let ((completions (bacom-comm process line point words cword stub open-quote)))
+      (let ((completions (bacom-comm process parsed open-quote)))
         (if completions
             (completion-in-region (if open-quote
                                       (1+ (bacom-token-begin current-token))
@@ -345,25 +341,17 @@ This function combines `bacom-tokenize' and
 (defun bacom-process-tokens (tokens pos)
   "Process a command line split into TOKENS that end at POS.
 
-This function takes a list of tokens built by
-`bacom-tokenize' and returns the variables Bash's
-`compgen' function expects in an association list.
-
-Return an association list with the following symbols as keys:
+This function takes a list of tokens built by `bacom-tokenize'
+and returns the variables Bash's `compgen' function expects as a
+list with the members:
  line - the relevant command between START and POS (string)
  point - position of the cursor in line (number)
  words - line split into words, unescaped (list of strings)
  stub - the portion before point of the string to be completed (string)
  cword - 0-based index of the word to be completed in words (number)"
-  (bacom-parse-line-postprocess
-   (bacom-parse-current-command tokens) pos))
+  (bacom-process-tokens-1 (bacom-parse-current-command tokens) pos))
 
-(defun bacom-parse-line-postprocess (tokens pos)
-  "Extract from TOKENS the data needed by compgen functions.
-
-This function takes a list of TOKENS created by `bacom-tokenize'
-for the current buffer and generate the data needed by compgen functions
-as returned by `bacom-parse-line' given the cursor position POS."
+(defun bacom-process-tokens-1 (tokens pos)
   (let* ((first-token (car tokens))
          (last-token (car (last tokens)))
          (start (or (bacom-token-begin first-token) pos))
@@ -380,11 +368,11 @@ as returned by `bacom-parse-line' given the cursor position POS."
     (when (or (> pos end) (= start end))
       (setq words (append words '(""))))
     (list
-     (cons 'line (buffer-substring-no-properties start pos))
-     (cons 'point (- pos start))
-     (cons 'cword (- (length words) 1))
-     (cons 'stub  stub)
-     (cons 'words words))))
+     (buffer-substring-no-properties start pos)
+     (- pos start)
+     (- (length words) 1)
+     stub
+     words)))
 
 (defun bacom-parse-current-command (tokens)
   "Extract from TOKENS the tokens forming the current command.
@@ -541,22 +529,23 @@ QUOTE should be nil, ?' or ?\"."
                       (backquote ,args)
                       " ")))
 
-(defun bacom-comm (process line pos words cword stub open-quote)
+(defun bacom-comm (process parsed open-quote)
   "Setup the completion environment and call compgen on process PROCESS.
-
+PARSED is a list as returned by `bacom-process-tokens'.
 OPEN-QUOTE should be the quote, a character, that's still open in
 the last word or nil.
 
-The result is a list of candidates, which might be empty."
-  (bacom-call-with-temp-buffer
-   (lambda (temp-buffer)
-     (bacom-send
-      (concat
-       (bacom-generate-line line pos words cword stub)
-       " 2>/dev/null")
-      process
-      temp-buffer)
-     (bacom-extract-candidates temp-buffer stub open-quote))))
+The result is a list of candidates, which might also be empty."
+  (destructuring-bind (line point cword stub words) parsed
+    (bacom-call-with-temp-buffer
+     (lambda (temp-buffer)
+       (bacom-send
+        (concat
+         (bacom-generate-line line point words cword stub)
+         " 2>/dev/null")
+        process
+        temp-buffer)
+       (bacom-extract-candidates temp-buffer stub open-quote)))))
 
 (defun bacom-extract-candidates (buffer stub open-quote)
   "Extract the completion candidates for STUB.

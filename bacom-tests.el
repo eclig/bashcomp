@@ -232,11 +232,7 @@
            (sz-testutils-with-buffer
             "a hello world"
             (bacom-parse-line 1 (line-end-position)))
-           '((line . "a hello world")
-             (point . 13)
-             (cword . 2)
-             (stub . "world")
-             (words "a" "hello" "world")))))
+           '("a hello world" 13 2 "world" ("a" "hello" "world")))))
 
 (ert-deftest bacom-test-parse-line-cursor-in-the-middle-of-a-word ()
   :tags '(bacom)
@@ -245,11 +241,7 @@
            (sz-testutils-with-buffer
             "a hello wo"
             (bacom-parse-line 1 (line-end-position)))
-           '((line . "a hello wo")
-             (point . 10)
-             (cword . 2)
-             (stub . "wo")
-             (words "a" "hello" "wo")))))
+           '("a hello wo" 10 2 "wo" ("a" "hello" "wo")))))
 
 (ert-deftest bacom-test-parse-line-cursor-at-the-beginning ()
   :tags '(bacom)
@@ -258,11 +250,7 @@
            (sz-testutils-with-buffer
             " "
             (bacom-parse-line 1 (line-end-position)))
-           '((line . "")
-             (point . 0)
-             (cword . 0)
-             (stub . "")
-             (words "")))))
+           '("" 0 0 "" ("")))))
 
 (ert-deftest bacom-test-parse-line-cursor-in-the-middle ()
   :tags '(bacom)
@@ -271,11 +259,7 @@
            (sz-testutils-with-buffer
             "a hello "
             (bacom-parse-line 1 (line-end-position)))
-           '((line . "a hello ")
-             (point . 8)
-             (cword . 2)
-             (stub . "")
-             (words "a" "hello" "")))))
+           '("a hello " 8 2 "" ("a" "hello" "")))))
 
 (ert-deftest bacom-test-parse-line-cursor-at-end ()
   :tags '(bacom)
@@ -284,11 +268,7 @@
            (sz-testutils-with-buffer
             "a hello world b c"
             (bacom-parse-line 1 (line-end-position)))
-           '((line . "a hello world b c")
-             (point . 17)
-             (cword . 4)
-             (stub . "c")
-             (words "a" "hello" "world" "b" "c")))))
+           '("a hello world b c" 17 4 "c" ("a" "hello" "world" "b" "c")))))
 
 (ert-deftest bacom-test-parse-line-complex-multi-command-line ()
   :tags '(bacom)
@@ -297,11 +277,7 @@
            (sz-testutils-with-buffer
             "cd /var/tmp ; ZORG=t make -"
             (bacom-parse-line 1 (line-end-position)))
-           '((line . "make -")
-             (point . 6)
-             (cword . 1)
-             (stub . "-")
-             (words "make" "-")))))
+           '("make -" 6 1 "-" ("make" "-")))))
 
 (ert-deftest bacom-test-parse-line-pipe ()
   :tags '(bacom)
@@ -310,11 +286,7 @@
            (sz-testutils-with-buffer
             "ls /var/tmp | sort -"
             (bacom-parse-line 1 (line-end-position)))
-           '((line . "sort -")
-             (point . 6)
-             (cword . 1)
-             (stub . "-")
-             (words "sort" "-")))))
+           '("sort -" 6 1 "-" ("sort" "-")))))
 
 (ert-deftest bacom-test-parse-line-escaped-semicolon ()
   :tags '(bacom)
@@ -323,11 +295,8 @@
            (sz-testutils-with-buffer
             "find -name '*.txt' -exec echo {} ';' -"
             (bacom-parse-line 1 (line-end-position)))
-           '((line . "find -name '*.txt' -exec echo {} ';' -")
-             (point . 38)
-             (cword . 7)
-             (stub . "-")
-             (words "find" "-name" "*.txt" "-exec" "echo" "{}" ";" "-")))))
+           '("find -name '*.txt' -exec echo {} ';' -" 38 7 "-" 
+             ("find" "-name" "*.txt" "-exec" "echo" "{}" ";" "-")))))
 
 (ert-deftest bacom-test-parse-line-at-var-assignment ()
   :tags '(bacom)
@@ -336,11 +305,7 @@
            (sz-testutils-with-buffer
             "cd /var/tmp ; A=f ZORG=t"
             (bacom-parse-line 1 (line-end-position)))
-           '((line . "ZORG=t")
-             (point . 6)
-             (cword . 0)
-             (stub . "ZORG=t")
-             (words "ZORG=t")))))
+           '("ZORG=t" 6 0 "ZORG=t" ("ZORG=t")))))
 
 (ert-deftest bacom-test-parse-line-cursor-after-end ()
   :tags '(bacom)
@@ -349,11 +314,8 @@
            (sz-testutils-with-buffer
             "a hello world b c "
             (bacom-parse-line 1 (line-end-position)))
-           '((line . "a hello world b c ")
-             (point . 18)
-             (cword . 5)
-             (stub . "")
-             (words "a" "hello" "world" "b" "c" "")))))
+           '("a hello world b c " 18 5 ""
+             ("a" "hello" "world" "b" "c" "")))))
 
 (ert-deftest bacom-test-parse-line-with-escaped-quote ()
   :tags '(bacom)
@@ -362,11 +324,8 @@
            (sz-testutils-with-buffer
             "cd /vcr/shows/Dexter\\'s"
             (bacom-parse-line 1 (line-end-position)))
-           '((line . "cd /vcr/shows/Dexter\\'s")
-             (point . 23)
-             (cword . 1)
-             (stub . "/vcr/shows/Dexter's")
-             (words "cd" "/vcr/shows/Dexter's")))))
+           '("cd /vcr/shows/Dexter\\'s" 23 1 "/vcr/shows/Dexter's"
+             ("cd" "/vcr/shows/Dexter's")))))
 
 (ert-deftest bacom-test-add-rule-garbage ()
   :tags '(bacom)
@@ -901,7 +860,7 @@
                   (bacom-tests-with-shell
                    (let ((process (get-buffer-process (current-buffer))))
                      (bacom-initialize process)
-                     (bacom-comm process "hel" 4 '("hel") 0 "hel" nil))))))
+                     (bacom-comm process (list "hel" 4 0 "hel" '("hel")) nil))))))
 
 (ert-deftest bacom-test-execute-one-completion ()
   :tags '(bacom-integration)
