@@ -613,6 +613,7 @@ for directory name detection to work."
 
 (defmacro bacom-filter-map (f list)
   "Apply F to each element of LIST, returning a list of the non-nil results."
+  (declare (debug (form form)))
   (let ((result (make-symbol "result")))
     `(let ((,result '()))
        (dolist (x ,list ,result)
