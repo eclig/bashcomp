@@ -710,8 +710,8 @@
            (let ((bacom-nospace nil))
              (sz-testutils-with-buffer
               (format "%shello world\n%shello \n\n" bacom-candidates-prefix bacom-candidates-prefix)
-              (bacom-extract-candidates (current-buffer) "hello" nil)))
-           '("hello\\ world" "hello "))))
+              (bacom-extract-candidates (current-buffer))))
+           '("hello world" "hello "))))
 
 (ert-deftest bacom-test-extract-candidates-with-spurious-output ()
   :tags '(bacom)
@@ -720,8 +720,8 @@
            (let ((bacom-nospace nil))
              (sz-testutils-with-buffer
               (format "%shello world\nspurious \n\n" bacom-candidates-prefix)
-              (bacom-extract-candidates (current-buffer) "hello" nil)))
-           '("hello\\ world"))))
+              (bacom-extract-candidates (current-buffer))))
+           '("hello world"))))
 
 (ert-deftest bacom-test-nonsep ()
   :tags '(bacom)
@@ -860,7 +860,10 @@
                   (bacom-tests-with-shell
                    (let ((process (get-buffer-process (current-buffer))))
                      (bacom-initialize process)
-                     (bacom-comm process (list "hel" 4 0 "hel" '("hel")) nil))))))
+                     (bacom-comm process 
+                                 (bacom-generate-line "hel" 4 '("hel") 0 "hel")
+                                 "hel"
+                                 nil))))))
 
 (ert-deftest bacom-test-execute-one-completion ()
   :tags '(bacom-integration)

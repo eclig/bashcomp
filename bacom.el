@@ -271,15 +271,22 @@ completion.  Return nil if no match was found."
       (unless bacom-initialized
         (bacom-initialize process)
         (setq bacom-initialized t))
-      (let ((completions (bacom-comm process parsed open-quote)))
-        (if completions
-            (completion-in-region (if open-quote
-                                      (1+ (bacom-token-begin current-token))
-                                    (bacom-token-begin current-token))
-                                  (bacom-token-end current-token)
-                                  completions)
-          ;; No standard completion found, try filename completion after a wordbreak
-          (bacom-dynamic-wordbreak-complete process current-token pos))))))
+      (destructuring-bind (line point cword stub words) parsed
+        (let ((completions
+               (bacom-generate-completions
+                process
+                (lambda (stub)
+                  (bacom-generate-line line point words cword stub))
+                stub
+                open-quote)))
+          (if completions
+              (completion-in-region (if open-quote
+                                        (1+ (bacom-token-begin current-token))
+                                      (bacom-token-begin current-token))
+                                    (bacom-token-end current-token)
+                                    completions)
+            ;; No standard completion found, try filename completion after a wordbreak
+            (bacom-dynamic-wordbreak-complete process current-token pos)))))))
 
 (defun bacom-dynamic-wordbreak-complete (process current-token pos)
   (let* ((wordbreak-regexp (format "^%s" (mapconcat #'string bacom-wordbreaks "")))
@@ -288,11 +295,10 @@ completion.  Return nil if no match was found."
                                   (bacom-get-token pos)))
          (stub (bacom-token-string token-after-wordbreak)))
     ;; TODO: Warning: reference to free variable `open-quote'
-    (let ((completions 
-           (bacom-call-with-temp-buffer
-            (lambda (temp-buffer)
-              (bacom-send (bacom-compgen -f -- ,stub) process temp-buffer)
-              (bacom-extract-candidates temp-buffer stub open-quote)))))
+    (let ((completions (bacom-generate-completions process
+                                                   (bacom-compgen -f -- ,stub)
+                                                   stub
+                                                   open-quote)))
       (when completions
         (completion-in-region (bacom-token-begin token-after-wordbreak)
                               (save-excursion
@@ -530,43 +536,36 @@ QUOTE should be nil, ?' or ?\"."
                       " ")
            " 2>/dev/null"))
 
-(defun bacom-comm (process parsed open-quote)
-  "Setup the completion environment and call compgen on process PROCESS.
-PARSED is a list as returned by `bacom-process-tokens'.
-OPEN-QUOTE should be the quote, a character, that's still open in
-the last word or nil.
+(defun bacom-generate-completions (process command stub open-quote)
+  "Run compgen command COMMAND in process PROCESS.
+COMMAND can be a string or a function: a string is used as is; a
+function should accept one argument `stub' and return the
+completion command to be called to complete it.  This allows for
+recalculating the completion command when dynamically loaded
+completion rules are used.  The arguments STUB and OPEN-QUOTE are
+used to call `bacom-postprocess' on the completion candidates."
+  (let* ((cmd (if (functionp command) (funcall command stub) command))
+         (completions (bacom-generate-completions-1 process cmd)))
+    (if (equal completions '("*bacom_restart*"))
+        (progn
+          (bacom-initialize process)
+          (bacom-generate-completions process command stub open-quote))
+      (mapcar (lambda (str)
+                (bacom-postprocess str stub open-quote))
+              completions))))
 
-The result is a list of candidates, which might also be empty."
-  (destructuring-bind (line point cword stub words) parsed
-    (bacom-call-with-temp-buffer
-     (lambda (temp-buffer)
-       (bacom-send
-        (bacom-generate-line line point words cword stub)
-        process
-        temp-buffer)
-       (let ((completions (bacom-extract-candidates temp-buffer stub open-quote)))
-         (if (equal completions '("*bacom_restart*"))
-             (progn
-               (bacom-initialize process)
-               (bacom-comm process parsed open-quote))
-           completions))))))
+(defun bacom-generate-completions-1 (process command)
+  (bacom-call-with-temp-buffer
+   (lambda (temp-buffer)
+     (bacom-send command process temp-buffer)
+     (bacom-extract-candidates temp-buffer))))
 
-(defun bacom-extract-candidates (buffer stub open-quote)
-  "Extract the completion candidates for STUB.
-This command takes the contents of BUFFER, splits it on newlines,
-post-processes the candidates and returns them as a list of
-strings.  If STUB is quoted, the quote character, ' or \", should
-be passed in OPEN-QUOTE.
-
-The completion candidates are subject to post-processing by
-`bacom-postprocess', which see."
+(defun bacom-extract-candidates (buffer)
+  "Extract the completion candidates in buffer BUFFER."
   (bacom-filter-map
    (lambda (str)
      (and (bacom-starts-with str bacom-candidates-prefix)
-          (let ((candidate (substring str (length bacom-candidates-prefix))))
-            (if (string= candidate "*bacom_restart*")
-                candidate
-             (bacom-postprocess candidate stub open-quote)))))
+          (substring str (length bacom-candidates-prefix))))
    (with-current-buffer buffer
      (save-match-data
        (split-string (buffer-string) "\n" t)))))
@@ -579,7 +578,7 @@ character (' or \"), or nil.  Return the modified version of the
 completion candidate.
 
 Post-processing includes escaping special characters, adding a \"/\"
-to directory names, merging STUB with the result.
+to directory names, merging PREFIX with the result.
 
 It should be invoked with the comint buffer as the current buffer
 for directory name detection to work."
