@@ -527,7 +527,8 @@ QUOTE should be nil, ?' or ?\"."
            (mapconcat (lambda (s)
                         (bacom-quote (format "%s" s)))
                       (backquote ,args)
-                      " ")))
+                      " ")
+           " 2>/dev/null"))
 
 (defun bacom-comm (process parsed open-quote)
   "Setup the completion environment and call compgen on process PROCESS.
@@ -540,9 +541,7 @@ The result is a list of candidates, which might also be empty."
     (bacom-call-with-temp-buffer
      (lambda (temp-buffer)
        (bacom-send
-        (concat
-         (bacom-generate-line line point words cword stub)
-         " 2>/dev/null")
+        (bacom-generate-line line point words cword stub)
         process
         temp-buffer)
        (let ((completions (bacom-extract-candidates temp-buffer stub open-quote)))

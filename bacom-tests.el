@@ -416,7 +416,7 @@
                  (bacom-rules (make-hash-table :test 'equal))
                  (default-directory "~/test"))
              (bacom-generate-line "hello worl" 7 '("hello" "worl") 1 "worl"))
-           (format "compgen -P '%s' -f -- worl" bacom-candidates-prefix))))
+           (format "compgen -P '%s' -f -- worl 2>/dev/null" bacom-candidates-prefix))))
 
 (ert-deftest bacom-test-generate-line-custom-completion-no-function-or-command ()
   :tags '(bacom)
@@ -427,7 +427,7 @@
                  (default-directory "/test"))
              (bacom-add-rule (list "complete" "-A" "-G" "*.txt" "zorg") bacom-rules)
              (bacom-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
-           (format "compgen -P '%s' -A -G '*.txt' -- worl" bacom-candidates-prefix))))
+           (format "compgen -P '%s' -A -G '*.txt' -- worl 2>/dev/null" bacom-candidates-prefix))))
 
 (ert-deftest bacom-test-bacom-specification ()
   :tags '(bacom)
@@ -467,7 +467,7 @@
                  (default-directory "/test"))
              (bacom-add-rule (list "complete" "-F" "__zorg" "zorg") bacom-rules)
              (bacom-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
-           (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl" bacom-candidates-prefix))))
+           (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl 2>/dev/null" bacom-candidates-prefix))))
 
 (ert-deftest bacom-test-generate-line-custom-completion-command ()
   :tags '(bacom)
@@ -478,7 +478,7 @@
                  (default-directory "/test"))
              (bacom-add-rule (list "complete" "-C" "__zorg" "zorg") bacom-rules)
              (bacom-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
-           (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl" bacom-candidates-prefix))))
+           (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl 2>/dev/null" bacom-candidates-prefix))))
 
 (ert-deftest bacom-test-starts-with-empty-str ()
   :tags '(bacom)
