@@ -860,10 +860,11 @@
                   (bacom-tests-with-shell
                    (let ((process (get-buffer-process (current-buffer))))
                      (bacom-initialize process)
-                     (bacom-comm process 
-                                 (bacom-generate-line "hel" 4 '("hel") 0 "hel")
-                                 "hel"
-                                 nil))))))
+                     (bacom-generate-completions
+                      process 
+                      (bacom-generate-line "hel" 4 '("hel") 0 "hel")
+                      "hel"
+                      nil))))))
 
 (ert-deftest bacom-test-execute-one-completion ()
   :tags '(bacom-integration)
