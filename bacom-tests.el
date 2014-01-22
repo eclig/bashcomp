@@ -1,6 +1,6 @@
 ;;; bacom-tests.el --- Tests cases for bacom.el
 
-;; Copyright (C) 2013 Emílio Lopes
+;; Copyright (C) 2013, 2014 Emílio Lopes
 ;; Copyright (C) 2009 Stephane Zermatten
 
 ;; Author: Stephane Zermatten <szermatt@gmx.net>

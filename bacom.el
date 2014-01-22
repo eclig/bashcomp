@@ -1,6 +1,6 @@
 ;;; bacom.el --- Bourne-Again Completion in a shell buffer
 
-;; Copyright (C) 2013 Emílio Lopes
+;; Copyright (C) 2013, 2014 Emílio Lopes
 ;; Copyright (C) 2009 Stephane Zermatten
 
 ;; Author: Stephane Zermatten <szermatt@gmx.net>
@@ -705,6 +705,7 @@ Return a CONS containing (before . after)."
         (setq end (1- end))))
     (cons "" str)))
 
+;; TODO: Emacs 24.4 has `string-suffix-p'.
 (defun bacom-ends-with (str suffix)
   "Return t if STR ends with SUFFIX."
   (let ((suffix-len (length suffix))
