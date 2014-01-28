@@ -870,9 +870,10 @@
   :tags '(bacom-integration)
   "bacom execute one completion"
   (should (equal (bacom-tests-with-shell
-                  (let ((pos (point)))
+                  (let ((pos (point))
+                        (completion-at-point-functions '(bacom-dynamic-complete)))
                     (insert "__bash_complete_")
-                    (bacom-dynamic-complete)
+                    (completion-at-point)
                     (sit-for 1)
                     (buffer-substring-no-properties pos (point))))
                  "__bash_complete_wrapper ")))
@@ -881,9 +882,10 @@
   :tags '(bacom-integration)
   "bacom execute wordbreak completion"
   (should (equal (bacom-tests-with-shell
-                  (let ((pos (point)))
+                  (let ((pos (point))
+                        (completion-at-point-functions '(bacom-dynamic-complete)))
                     (insert "export PATH=/sbin:/bi")
-                    (bacom-dynamic-complete)
+                    (completion-at-point)
                     (sit-for 1)
                     (buffer-substring-no-properties pos (point))))
                  "export PATH=/sbin:/bin")))
@@ -894,9 +896,10 @@
   (should (equal (bacom-tests-with-shell
                   (comint-send-string (current-buffer) "complete -W 'abc aeiou' foo\n")
                   (sit-for 1)
-                  (let ((pos (point)))
+                  (let ((pos (point))
+                        (completion-at-point-functions '(bacom-dynamic-complete)))
                     (insert "foo ab")
-                    (bacom-dynamic-complete)
+                    (completion-at-point)
                     (sit-for 1)
                     (buffer-substring-no-properties pos (point))))
                  "foo abc")))
@@ -907,9 +910,10 @@
   (should (equal (bacom-tests-with-shell
                   (comint-send-string (current-buffer) "complete -F _foo foo; _foo () { complete -W 'abc aeiou' foo; return 124; }\n")
                   (sit-for 1)
-                  (let ((pos (point)))
+                  (let ((pos (point))
+                        (completion-at-point-functions '(bacom-dynamic-complete)))
                     (insert "foo ab")
-                    (bacom-dynamic-complete)
+                    (completion-at-point)
                     (sit-for 1)
                     (buffer-substring-no-properties pos (point))))
                  "foo abc")))

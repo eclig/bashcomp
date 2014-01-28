@@ -280,11 +280,12 @@ completion.  Return nil if no match was found."
                 stub
                 open-quote)))
           (if completions
-              (completion-in-region (if open-quote
-                                        (1+ (bacom-token-begin current-token))
-                                      (bacom-token-begin current-token))
-                                    (bacom-token-end current-token)
-                                    completions)
+              (list (if open-quote
+                        (1+ (bacom-token-begin current-token))
+                      (bacom-token-begin current-token))
+                    (bacom-token-end current-token)
+                    completions
+                    :exclusive 'yes)
             ;; No standard completion found, try filename completion after a wordbreak
             (bacom-dynamic-wordbreak-complete process current-token pos)))))))
 
@@ -300,11 +301,12 @@ completion.  Return nil if no match was found."
                                                    stub
                                                    open-quote)))
       (when completions
-        (completion-in-region (bacom-token-begin token-after-wordbreak)
-                              (save-excursion
-                                (skip-chars-forward wordbreak-regexp (bacom-token-end current-token))
-                                (point))
-                              completions)))))
+        (list (bacom-token-begin token-after-wordbreak)
+              (save-excursion
+                (skip-chars-forward wordbreak-regexp (bacom-token-end current-token))
+                (point))
+              completions
+              :exclusive 'no)))))
 
 ;;; ---------- Functions: parsing and tokenizing
 
