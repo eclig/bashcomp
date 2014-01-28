@@ -169,8 +169,8 @@ to remove the extra space Bash adds after a completion."
 (defvar-local bacom-initialized nil
   "Non-nil if `bacom' was already initialized.")
 
-(defvar-local bacom-rules nil
-  "Mapping from command names to Bash's `complete' rules.")
+(defvar-local bacom-rules (make-hash-table :test 'equal)
+  "Mapping from command names to Bash's completion rules.")
 
 (defconst bacom-wordbreaks '(?\" ?' ?@ ?> ?< ?= ?\; ?| ?& ?\( ?:)
   "List of word break characters.
@@ -548,7 +548,8 @@ used to call `bacom-postprocess' on the completion candidates."
          (completions (bacom-generate-completions-1 process cmd)))
     (if (equal completions '("*bacom_restart*"))
         (progn
-          (bacom-initialize process)
+          ;; TODO: only reread completion rules for the corresponding program!!!
+          (bacom-readin-completion-rules process bacom-rules)
           (bacom-generate-completions process command stub open-quote))
       (mapcar (lambda (str)
                 (bacom-postprocess str stub open-quote))
@@ -819,8 +820,7 @@ candidates."
 Call this function if you have updated your ~/.bashrc or any Bash init scripts
 and would like Bash completion in Emacs to take these changes into account."
   (interactive)
-  (setq bacom-initialized nil)
-  (setq bacom-rules nil))
+  (setq bacom-initialized nil))
 
 (defun bacom-send (cmd process output-buffer)
   "Send CMD to the Bash process PROCESS.
@@ -844,19 +844,36 @@ CMD, if any, goes into the buffer given by OUTPUT-BUFFER."
           (comint-redirect-cleanup))))))
 
 (defun bacom-initialize (process)
-  "Initialize `bacom' in PROCESS."
-  (let ((rules (make-hash-table :test 'equal)))
-    (bacom-call-with-temp-buffer
-     (lambda (temp-buffer)
-       (bacom-send
-        (concat
-         "function __bash_complete_wrapper { eval $__BASH_COMPLETE_WRAPPER; test $? -eq 124 && COMPREPLY=('*bacom_restart*');};"
-         "function quote_readline { echo \"$1\"; };"
-         "complete -p")
-        process
-        temp-buffer)
-       (bacom-initialize-rules temp-buffer rules)))
-    (setq bacom-rules rules)))
+  "Initialize `bacom' in Bash process PROCESS."
+  (bacom-initialize-complete-wrapper process)
+  (clrhash bacom-rules)
+  (bacom-readin-completion-rules process bacom-rules))
+
+;; put this in a parameter in case an user wants to do something smart.
+(defvar bacom-complete-wrapper
+  (concat
+   "function __bash_complete_wrapper { eval $__BASH_COMPLETE_WRAPPER; test $? -eq 124 && COMPREPLY=('*bacom_restart*');};"
+   "function quote_readline { echo \"$1\"; };")
+  "*Wrapper used to call Bash's `complete' to generate completions.
+You know what you are doing.")
+
+(defun bacom-initialize-complete-wrapper (process)
+  "Initialize the completion wrapper in process PROCESS."
+  (bacom-call-with-temp-buffer
+   (lambda (temp-buffer)
+     (bacom-send bacom-complete-wrapper process temp-buffer))))
+
+(defun bacom-readin-completion-rules (process rules &rest commands)
+  "Read in completion rules from Bash process PROCESS into RULES, a hash table.
+If optional arguments COMMANDS are given, only fetch completion
+rules for those given commands."
+  (bacom-call-with-temp-buffer
+   (lambda (temp-buffer)
+     (bacom-send
+      (concat "complete -p " (mapconcat #'identity commands " "))
+      process
+      temp-buffer)
+     (bacom-initialize-rules temp-buffer rules))))
 
 (defmacro bacom-call-with-temp-buffer (thunk)
   "Call THUNK with a freshly created temporary buffer as an argument.

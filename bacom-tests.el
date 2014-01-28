@@ -855,7 +855,7 @@
   :tags '(bacom-integration)
   "bacom interaction"
   (should-not bacom-initialized)
-  (should-not (hash-table-p bacom-rules))
+  (should (hash-table-p bacom-rules))
   (should (member "help "
                   (bacom-tests-with-shell
                    (let ((process (get-buffer-process (current-buffer))))
