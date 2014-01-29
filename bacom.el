@@ -21,13 +21,11 @@
 
 ;;; Commentary:
 ;;
-;; This file defines dynamic completion hooks for shell-mode and
-;; shell-command prompts that are based on Bash completion.
-;;
-;; You will need shell-command.el to get tab completion in the
-;; minibuffer. See http://www.namazu.org/~tsuchiya/elisp/shell-command.el
+;; This file define functions which use the underlying Bash process in
+;; a `shell-mode' buffer to provide completion.
 ;;
 ;; Bash completion for emacs:
+;;
 ;; - is aware of Bash builtins, aliases and functions
 ;; - does file expansion inside of colon-separated variables
 ;;   and after redirections (> or <)
@@ -42,40 +40,22 @@
 ;;
 ;; INSTALLATION
 ;;
-;; 1. copy bacom.el into a directory that's on Emacs load-path
-;; 2. add this into your .emacs file:
-;;   (autoload 'bacom-dynamic-complete \"bacom\"
-;;     \"Bash completion hook\")
-;;   (add-hook 'shell-dynamic-complete-functions
-;;      'bacom-dynamic-complete)
-;;   (add-hook 'shell-command-complete-functions
-;;      'bacom-dynamic-complete)
-;;
-;;   or simpler, but forces you to load this file at startup:
-;;
-;;   (require 'bacom)
-;;   (bacom-setup)
-;;
-;; 3. reload your .emacs (M-x `eval-buffer') or restart
+;; ...
 ;;
 ;; 4. Set `comint-prompt-regexp' to match your Bash prompt, regardless
 ;;    of the value of `comint-use-prompt-regexp'.  This is needed by
 ;;    `comint-redirect', the library used for getting the completions
 ;;    from the underlying shell process.
 ;;
-;; Once this is done, use <TAB> as usual to do dynamic completion from
-;; shell mode or a shell command minibuffer, such as the one started
-;; for M-x `compile'.
-;;
 ;; You'll get better results if you turn on Bash's programmable completion.
-;; On Ubuntu, this means running:
+;; On Debian-based systems this means running:
 ;;   sudo apt-get install bash-completion
 ;; and then adding this to your .bashrc:
 ;;   . /etc/bash_completion
 ;;
-;; Right after enabling Bash's programmable completion, and whenever you
-;; make changes to you .bashrc, call `bacom-reset' to make
-;; sure Bash completion takes your new settings into account.
+;; Right after enabling Bash's programmable completion, and whenever
+;; you make changes to you .bashrc, call `bacom-reset' to make sure
+;; Bash completion takes your new settings into account.
 ;;
 ;; CAVEATS
 ;;
@@ -87,69 +67,19 @@
 ;; - The variable `comint-prompt-regexp' hast be set to the
 ;;   correct prompt for your Shell.
 ;;
-;; COMPATIBILITY
-;;
-;; bacom.el is quite sensitive to the OS and Bash version.
-;; This package is known to work on the following environment:
-;;   GNU Emacs 22.3.1 (Aquamacs 1.7)
-;;   GNU Emacs 22.1.1 (OSX 10.5)
-;;   GNU Emacs 22.1.1 (Ubuntu 8.04)
-;;   GNU Emacs 23.0.94.1 (Ubuntu 8.10)
-;;   GNU Emacs 24.1.1 (OSX 10.7)
-;;   GNU Emacs 24.1.1 (OSX 10.8)
-;;   GNU Emacs 24.3
-;;
-;; and using the following Bash versions:
-;;   Bash 2.05.08
-;;   Bash 3.2.17
-;;   Bash 3.2.32
-;;   Bash 3.2.39
-;;
-;; bacom.el does not works on XEmacs.
-
-;;; History:
-;;
-;; 2013-05-27   Emilio Lopes <eclig@gmx.net>
-;;
-;; * Use Comint's "redirect" functionality to run completion commands.
-;;
-;; 2009-11-25   Stephane Zermatten <szermatt@gmail.com>
-;;
-;; * bacom-require-process: set MAILCHECK to -1
-;; to disable mail check message.
-;;
-;; 2009-08-01   Stephane Zermatten <szermatt@gmail.com>
-;;
-;; * bacom-generate-line: add missing compgen
-;; option to complete commands (duh!).
-;;
-;; Current version:
-;; $Id$
-;;
+;; bacom.el does not work on XEmacs?
 
 (require 'cl-lib)
 (require 'comint)
 
 ;;; Code:
 
-;;; ---------- Customization
+;;; User options
+
 (defgroup bacom nil
   "Bash configurable command-line completion "
   :group 'shell
   :group 'shell-command)
-
-(defcustom bacom-enabled t
-  "Enable/Disable Bash configurable command-line completion globally.
-
-This flag is useful for temporarily disabling Bash completion
-once it's been installed.
-
-Setting this variable to t is NOT enough to enable Bash completion.
-Bash completion is only available in the environment for which
-`bacom-dynamic-complete' has been registered. See `bacom-setup'
-for that."
-  :type '(boolean)
-  :group 'bacom)
 
 (defcustom bacom-nospace nil
   "Never let Bash add a final space at the end of a completion.
@@ -164,7 +94,7 @@ to remove the extra space Bash adds after a completion."
   :type '(boolean)
   :group 'bacom)
 
-;;; ---------- Internal variables and constants
+;;; Internal variables and constants
 
 (defvar-local bacom-initialized nil
   "Non-nil if `bacom' was already initialized.")
@@ -182,7 +112,73 @@ completion in colon-separated values.")
 (defconst bacom-candidates-prefix "\e\[bacom]:"
   "A prefix to be added by Bash's `compgen' to tag completion candidates.")
 
-;;; ---------- Inline functions
+;;; Completion functions
+
+;;;###autoload
+(defun bacom-dynamic-complete ()
+  "Complete word at cursor using Bash completion.
+
+This function is meant to be added into
+`shell-dynamic-complete-functions' or
+`shell-command-complete-functions'.  It uses `comint' to figure
+out what the current command is and calls
+`comint-dynamic-simple-complete' to do the completion.
+
+If a match was found, it is displayed as is usual for comint
+completion.  Return nil if no match was found."
+  (let* ((process (get-buffer-process (current-buffer)))
+         (start (comint-line-beginning-position))
+         (pos (point))
+         (tokens (bacom-tokenize start pos))
+         (current-token (car (last tokens)))
+         (open-quote (bacom-token-quote current-token))
+         (parsed (bacom-process-tokens tokens pos))
+         ;; Override configuration for comint-dynamic-simple-complete.
+         ;; Bash adds a space suffix automatically.
+         (comint-completion-addsuffix nil))
+    (unless bacom-initialized
+      (bacom-initialize process)
+      (setq bacom-initialized t))
+    (destructuring-bind (line point cword stub words) parsed
+      (let ((completions
+             (bacom-generate-completions
+              process
+              (lambda (stub)
+                (bacom-generate-line line point words cword stub))
+              stub
+              open-quote)))
+        (if completions
+            (list (if open-quote
+                      (1+ (bacom-token-begin current-token))
+                    (bacom-token-begin current-token))
+                  (bacom-token-end current-token)
+                  completions
+                  :exclusive 'yes)
+          ;; No standard completion found, try filename completion after a wordbreak
+          (bacom-dynamic-wordbreak-complete process current-token pos))))))
+
+(defun bacom-dynamic-wordbreak-complete (process current-token pos)
+  (let* ((wordbreak-regexp (format "^%s" (mapconcat #'string bacom-wordbreaks "")))
+         (token-after-wordbreak (save-excursion
+                                  (skip-chars-backward wordbreak-regexp)
+                                  (bacom-get-token pos)))
+         (stub (bacom-token-string token-after-wordbreak)))
+    ;; TODO: Warning: reference to free variable `open-quote'
+    (let ((completions (bacom-generate-completions process
+                                                   (bacom-compgen -f -- ,stub)
+                                                   stub
+                                                   open-quote)))
+      (when completions
+        (list (bacom-token-begin token-after-wordbreak)
+              (save-excursion
+                (skip-chars-forward wordbreak-regexp (bacom-token-end current-token))
+                (point))
+              completions
+              :exclusive 'no)))))
+
+
+
+;;; Token functions
 
 (defsubst bacom-token-new (string start end)
   "Return a new token containing STRING extending from START to END."
@@ -219,130 +215,19 @@ completion in colon-separated values.")
   "Return the quote character that was still open in TOKEN."
   (cdr (assq 'quote token)))
 
-;;; ---------- Functions: completion
-
-;;;###autoload
-(defun bacom-setup ()
-  "Register Bash completion for the shell buffer and shell command line.
-
-This function adds `bacom-dynamic-complete' to the completion
-function list of shell mode, `shell-dynamic-complete-functions' and to the
-completion function list of shell-command, `shell-command-complete-functions'.
-
-This function is convenient, but it might not be the best way of enabling
-Bash completion in your .emacs file because it forces you to load the module
-before it is needed. For an autoload version, add:
-
-  (autoload 'bacom-dynamic-complete \"bacom\"
-    \"Bash completion hook\")
-  (add-hook 'shell-dynamic-complete-functions
-          'bacom-dynamic-complete)
-  (add-hook 'shell-command-complete-functions
-          'bacom-dynamic-complete))
-"
-  (add-hook 'shell-dynamic-complete-functions
-            'bacom-dynamic-complete)
-  (add-hook 'shell-command-complete-functions
-            'bacom-dynamic-complete))
-
-;;;###autoload
-(defun bacom-dynamic-complete ()
-  "Complete word at cursor using Bash completion.
-
-This function is meant to be added into
-`shell-dynamic-complete-functions' or
-`shell-command-complete-functions'.  It uses `comint' to figure
-out what the current command is and calls
-`comint-dynamic-simple-complete' to do the completion.
-
-If a match was found, it is displayed as is usual for comint
-completion.  Return nil if no match was found."
-  (when bacom-enabled
-    (let* ((process (get-buffer-process (current-buffer)))
-           (start (comint-line-beginning-position))
-           (pos (point))
-           (tokens (bacom-tokenize start pos))
-           (current-token (car (last tokens)))
-           (open-quote (bacom-token-quote current-token))
-           (parsed (bacom-process-tokens tokens pos))
-           ;; Override configuration for comint-dynamic-simple-complete.
-           ;; Bash adds a space suffix automatically.
-           (comint-completion-addsuffix nil))
-      (unless bacom-initialized
-        (bacom-initialize process)
-        (setq bacom-initialized t))
-      (destructuring-bind (line point cword stub words) parsed
-        (let ((completions
-               (bacom-generate-completions
-                process
-                (lambda (stub)
-                  (bacom-generate-line line point words cword stub))
-                stub
-                open-quote)))
-          (if completions
-              (list (if open-quote
-                        (1+ (bacom-token-begin current-token))
-                      (bacom-token-begin current-token))
-                    (bacom-token-end current-token)
-                    completions
-                    :exclusive 'yes)
-            ;; No standard completion found, try filename completion after a wordbreak
-            (bacom-dynamic-wordbreak-complete process current-token pos)))))))
-
-(defun bacom-dynamic-wordbreak-complete (process current-token pos)
-  (let* ((wordbreak-regexp (format "^%s" (mapconcat #'string bacom-wordbreaks "")))
-         (token-after-wordbreak (save-excursion
-                                  (skip-chars-backward wordbreak-regexp)
-                                  (bacom-get-token pos)))
-         (stub (bacom-token-string token-after-wordbreak)))
-    ;; TODO: Warning: reference to free variable `open-quote'
-    (let ((completions (bacom-generate-completions process
-                                                   (bacom-compgen -f -- ,stub)
-                                                   stub
-                                                   open-quote)))
-      (when completions
-        (list (bacom-token-begin token-after-wordbreak)
-              (save-excursion
-                (skip-chars-forward wordbreak-regexp (bacom-token-end current-token))
-                (point))
-              completions
-              :exclusive 'no)))))
-
-;;; ---------- Functions: parsing and tokenizing
-
-(defun bacom-join (words)
-  "Join WORDS into a shell command line.
-
-All words that contain even mildly suspicious characters are
-quoted using single quotes to avoid the shell interpreting them
-when it shouldn't.
-
-Return one string containing WORDS."
-  (if words
-      (mapconcat 'bacom-quote words " ")
-    ""))
+
+;;; Functions: parsing and tokenizing
 
 ;; TODO: use `shell-quote-argument' instead?
 ;; See also `tramp-shell-quote-argument'.
 (defun bacom-quote (word)
-  "Put single quotes around WORD unless it's clearly unnecessary.
-
-If WORD contains characters that aren't known to be harmless, this
-functions adds single quotes around it and return the result."
+  "Quote WORD as appropriate for passing as an arguments to the shell."
   (if (string-match-p "^[a-zA-Z0-9_./-]*$" word)
       word
-    (concat "'"
-            (replace-regexp-in-string "'" "'\\''" word :literal t)
-            "'")))
+    (format "'%s'" (replace-regexp-in-string "'" "'\\''" word :literal t))))
 
 ;; TODO: not used anywhere, except in the regression tests
 (defun bacom-parse-line (start pos)
-  "Split a command line in the current buffer between START and POS.
-
-This function combines `bacom-tokenize' and
-`bacom-process-tokens'.  It takes the same arguments as
-`bacom-tokenize' and returns the same value as
-`bacom-process-tokens'."
   (bacom-process-tokens
    (bacom-tokenize start pos) pos))
 
@@ -528,7 +413,8 @@ quote).  Get it using `bacom-nonsep'.")
 QUOTE should be nil, ?' or ?\"."
   (cdr (assq quote bacom-nonsep-alist)))
 
-;;; ---------- Functions: getting candidates from Bash
+
+;;; Getting completion candidates from Bash
 
 (defmacro bacom-compgen (&rest args)
   `(concat (format "compgen -P '%s' " bacom-candidates-prefix)
@@ -567,7 +453,7 @@ used to call `bacom-postprocess' on the completion candidates."
   "Extract the completion candidates in buffer BUFFER."
   (bacom-filter-map
    (lambda (str)
-     (and (bacom-starts-with str bacom-candidates-prefix)
+     (and (string-prefix-p bacom-candidates-prefix str)
           (substring str (length bacom-candidates-prefix))))
    (with-current-buffer buffer
      (save-match-data
@@ -589,15 +475,15 @@ for directory name detection to work."
     (bacom-addsuffix
      (let* ((rebuilt)
             (rest (cond
-                   ((bacom-starts-with str prefix)
+                   ((string-prefix-p prefix str)
                     (substring str (length prefix)))
                    ;; Bash expands the home directory automatically. This is confusing
                    ;; for comint-dynamic-simple-complete
-                   ((and (bacom-starts-with prefix "~")
-                         (bacom-starts-with str (expand-file-name "~")))
+                   ((and (string-prefix-p "~" prefix)
+                         (string-prefix-p (expand-file-name "~") str))
                     (substring (concat "~/" (substring str (length (file-name-as-directory (expand-file-name "~")))))
                                (length prefix)))
-                   ((bacom-starts-with prefix str)
+                   ((string-prefix-p str prefix)
                     ;; completion is a substring of prefix something's
                     ;; gone wrong. Treat it as one (useless)
                     ;; candidate.
@@ -606,9 +492,9 @@ for directory name detection to work."
                    ;; completion sometimes only applies to the last word, as
                    ;; defined by COMP_WORDBREAKS. This detects and works around
                    ;; this feature.
-                   ((bacom-starts-with
-                     (setq rebuilt (concat (bacom-before-last-wordbreak prefix) str))
-                     prefix)
+                   ((string-prefix-p
+                     prefix
+                     (setq rebuilt (concat (bacom-before-last-wordbreak prefix) str)))
                     (substring rebuilt (length prefix)))
                    ;; there is no meaningful link between the prefix and
                    ;; the string. just append the string to the prefix and
@@ -661,8 +547,8 @@ Return a possibly escaped version of COMPLETION-CANDIDATE."
   "Add a directory suffix to STR if it looks like a directory.
 
 This function looks for a directory called STR relative to the
-buffer-local variable default-directory. If it exists, it returns
-\(concat STR \"/\"). Otherwise it retruns STR."
+buffer-local variable `default-directory'.  If it exists, it returns
+\(concat STR \"/\").  Otherwise it returns STR."
   (if (and (null (string-match-p bacom-known-suffixes-regexp str))
            (file-accessible-directory-p (expand-file-name str default-directory)))
       (concat str "/")
@@ -719,16 +605,8 @@ Return a CONS containing (before . after)."
       (>= str-len suffix-len)
       (equal (substring str (- suffix-len)) suffix)))))
 
-;; TODO: Emacs has `string-prefix-p' since 23.2, maybe use it.
-(defun bacom-starts-with (str prefix)
-  "Return t if STR starts with PREFIX."
-  (let ((prefix-len (length prefix))
-        (str-len (length str)))
-    (and
-     (>= str-len prefix-len)
-     (equal (substring str 0 prefix-len) prefix))))
-
-;;; ---------- Functions: Bash subprocess
+
+;;; Completion table
 
 (defun bacom-initialize-rules (buffer rules)
   "Initialize hash table RULES from the contents of BUFFER.
@@ -808,7 +686,7 @@ candidates."
                                  (bacom-quote line)
                                  pos
                                  cword
-                                 (bacom-join words)
+                                 (mapconcat 'bacom-quote words " ")
                                  (bacom-quote function-name))))
                 (bacom-compgen ,@args -- ,stub))))
      (t

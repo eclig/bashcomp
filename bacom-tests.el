@@ -39,28 +39,6 @@
 (eval-when-compile
   '(require cl-macs))
 
-(ert-deftest bacom-test-join-simple ()
-  :tags '(bacom)
-  "bacom-join simple"
-  (should (string=
-           (bacom-join
-            '("a" "hello" "world" "b" "c"))
-           "a hello world b c")))
-
-(ert-deftest bacom-test-join-escape-quote ()
-  :tags '(bacom)
-  "bacom-join escape quote"
-  (should (string=
-           (bacom-join '("a" "hel'lo" "world" "b" "c"))
-           "a 'hel'\\''lo' world b c")))
-
-(ert-deftest bacom-test-join-escape-space ()
-  :tags '(bacom)
-  "bacom-join escape space"
-  (should (string=
-           (bacom-join '("a" "hello world" "b" "c"))
-           "a 'hello world' b c")))
-
 (ert-deftest bacom-test-tokenize-simple ()
   :tags '(bacom)
   "bacom-tokenize simple"
@@ -480,26 +458,6 @@
              (bacom-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
            (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl 2>/dev/null" bacom-candidates-prefix))))
 
-(ert-deftest bacom-test-starts-with-empty-str ()
-  :tags '(bacom)
-  "bacom-starts-with empty str"
-  (should-not (bacom-starts-with "" "prefix")))
-
-(ert-deftest bacom-test-starts-with-starts-with ()
-  :tags '(bacom)
-  "bacom-starts-with starts with"
-  (should (bacom-starts-with "blah-blah" "blah-")))
-
-(ert-deftest bacom-test-starts-with-does-not-starts-with ()
-  :tags '(bacom)
-  "bacom-starts-with does not starts with"
-  (should-not (bacom-starts-with "blah-blah" "blih-")))
-
-(ert-deftest bacom-test-starts-with-same ()
-  :tags '(bacom)
-  "bacom-starts-with same"
-  (should (bacom-starts-with "blah-" "blah-")))
-
 (ert-deftest bacom-test-send ()
   :tags '(bacom)
   "bacom-send"
@@ -592,14 +550,6 @@
                      (default-directory "~/x"))
              (bacom-addsuffix "y"))
            "y/")))
-
-(ert-deftest bacom-test-starts-with ()
-  :tags '(bacom)
-  "bacom-starts-with"
-  (should-not (bacom-starts-with "" "hello "))
-  (should (bacom-starts-with "hello world" "hello "))
-  (should-not (bacom-starts-with "hello world" "hullo "))
-  (should (bacom-starts-with "hello" "")))
 
 (ert-deftest bacom-test-ends-with ()
   :tags '(bacom)
@@ -788,13 +738,6 @@
   (should (string=
            (bacom-quote "a'b")
            "'a'\\''b'")))
-
-(ert-deftest bacom-test-join ()
-  :tags '(bacom)
-  "bacom-join"
-  (should (string=
-           (bacom-join '("ls" "-l" "/a/b" "/a/b c" "/a/b'c" "$help/d"))
-           "ls -l /a/b '/a/b c' '/a/b'\\''c' '$help/d'")))
 
 (ert-deftest bacom-test-completion-in-region ()
   :tags '(bacom)
