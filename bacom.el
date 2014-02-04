@@ -459,7 +459,7 @@ This function looks for a directory called STR relative to the
 buffer-local variable `default-directory'.  If it exists, it returns
 \(concat STR \"/\").  Otherwise it returns STR."
   (if (and (null (string-match-p bacom-known-suffixes-regexp str))
-           (file-accessible-directory-p (expand-file-name str default-directory)))
+           (file-directory-p (comint-directory str)))
       (concat str "/")
     str))
 
