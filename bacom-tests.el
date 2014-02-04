@@ -551,88 +551,6 @@
              (bacom-addsuffix "y"))
            "y/")))
 
-(ert-deftest bacom-test-ends-with ()
-  :tags '(bacom)
-  "bacom-ends-with"
-  (should-not (bacom-ends-with "" "world"))
-  (should (bacom-ends-with "hello world" "world"))
-  (should-not (bacom-ends-with "hello world" "wurld"))
-  (should (bacom-ends-with "hello" "")))
-
-(ert-deftest bacom-test-last-wordbreak-split ()
-  :tags '(bacom)
-  "bacom-last-wordbreak-split"
-  (should (equal (bacom-last-wordbreak-split "a:b:c:d:e")
-                 '("a:b:c:d:" . "e")))
-  (should (equal (bacom-last-wordbreak-split "hello=world")
-                 '("hello=" . "world")))
-  (should (equal (bacom-last-wordbreak-split "hello>world")
-                 '("hello>" . "world")))
-  (should (equal (bacom-last-wordbreak-split ">world")
-                 '(">" . "world")))
-  (should (equal (bacom-last-wordbreak-split "hello")
-                 '("" . "hello"))))
-
-(ert-deftest bacom-test-before-last-wordbreak ()
-  :tags '(bacom)
-  "bacom-before-last-wordbreak"
-  (should (string= (bacom-before-last-wordbreak "a:b:c:d:e") "a:b:c:d:"))
-  (should (string= (bacom-before-last-wordbreak "hello=world") "hello="))
-  (should (string= (bacom-before-last-wordbreak "hello>world") "hello>"))
-  (should (string= (bacom-before-last-wordbreak "hello") "")))
-
-(ert-deftest bacom-test-after-last-wordbreak ()
-  :tags '(bacom)
-  "bacom-after-last-wordbreak"
-  (should (string= (bacom-after-last-wordbreak "a:b:c:d:e") "e"))
-  (should (string= (bacom-after-last-wordbreak "hello=world") "world"))
-  (should (string= (bacom-after-last-wordbreak "hello>world") "world"))
-  (should (string= (bacom-after-last-wordbreak "hello") "hello")))
-
-(ert-deftest bacom-test-postprocess-escape-rest ()
-  :tags '(bacom)
-  "bacom-postprocess escape rest"
-  (should (string=
-           (bacom-postprocess "a\\ bc d e" "a\\ b")
-           "a\\ bc\\ d\\ e")))
-
-(ert-deftest bacom-test-postprocess-do-not-escape-final-space ()
-  :tags '(bacom)
-  "bacom-postprocess do not escape final space"
-  (should (string=
-           (let ((bacom-nospace nil))
-             (bacom-postprocess "ab " "a"))
-           "ab ")))
-
-(ert-deftest bacom-test-postprocess-remove-final-space ()
-  :tags '(bacom)
-  "bacom-postprocess remove final space"
-  (should (string=
-           (let ((bacom-nospace t))
-             (bacom-postprocess "ab " "a"))
-           "ab")))
-
-(ert-deftest bacom-test-postprocess-unexpand-home-and-escape ()
-  :tags '(bacom)
-  "bacom-postprocess unexpand home and escape"
-  (should (string=
-           (bacom-postprocess (expand-file-name "~/a/hello world") "~/a/he")
-           "~/a/hello\\ world")))
-
-(ert-deftest bacom-test-postprocess-match-after-wordbreak-and-escape ()
-  :tags '(bacom)
-  "bacom-postprocess match after wordbreak and escape"
-  (should (string=
-           (bacom-postprocess "hello world" "a:b:c:he")
-           "a:b:c:hello\\ world")))
-
-(ert-deftest bacom-test-postprocess-just-append ()
-  :tags '(bacom)
-  "bacom-postprocess just append"
-  (should (string=
-           (bacom-postprocess " world" "hello")
-           "hello\\ world")))
-
 (ert-deftest bacom-test-postprocess-subset-of-the-prefix ()
   :tags '(bacom)
   "bacom-postprocess subset of the prefix"
@@ -640,37 +558,22 @@
            (bacom-postprocess "Dexter" "Dexter'")
            "Dexter")))
 
-(ert-deftest bacom-test-postprocess-for-ending-with-a-slash ()
-  :tags '(bacom)
-  "bacom-postprocess for \"~\" ending with a slash"
-  (should (string=
-           (cl-letf ((real-expand-file-name (symbol-function 'expand-file-name))
-                     ((symbol-function 'expand-file-name)
-                      (lambda (name &optional default-dir)
-                        (if (string= name "~")
-                            "/"
-                          (funcall real-expand-file-name name default-dir)))))
-             (bacom-postprocess "/foo/bar" "~/f"))
-           "~/foo/bar")))
-
 (ert-deftest bacom-test-extract-candidates ()
   :tags '(bacom)
   "bacom-extract-candidates"
   (should (equal
-           (let ((bacom-nospace nil))
-             (sz-testutils-with-buffer
-              (format "%shello world\n%shello \n\n" bacom-candidates-prefix bacom-candidates-prefix)
-              (bacom-extract-candidates (current-buffer))))
+           (sz-testutils-with-buffer
+            (format "%shello world\n%shello \n\n" bacom-candidates-prefix bacom-candidates-prefix)
+            (bacom-extract-candidates (current-buffer)))
            '("hello world" "hello "))))
 
 (ert-deftest bacom-test-extract-candidates-with-spurious-output ()
   :tags '(bacom)
   "bacom-extract-candidates with spurious output"
   (should (equal
-           (let ((bacom-nospace nil))
-             (sz-testutils-with-buffer
-              (format "%shello world\nspurious \n\n" bacom-candidates-prefix)
-              (bacom-extract-candidates (current-buffer))))
+           (sz-testutils-with-buffer
+            (format "%shello world\nspurious \n\n" bacom-candidates-prefix)
+            (bacom-extract-candidates (current-buffer)))
            '("hello world"))))
 
 (ert-deftest bacom-test-nonsep ()
@@ -799,7 +702,7 @@
   "bacom interaction"
   (should-not bacom-initialized)
   (should (hash-table-p bacom-rules))
-  (should (member "help "
+  (should (member "help"
                   (bacom-tests-with-shell
                    (let ((process (get-buffer-process (current-buffer))))
                      (bacom-initialize process)
@@ -819,7 +722,7 @@
                     (completion-at-point)
                     (sit-for 1)
                     (buffer-substring-no-properties pos (point))))
-                 "__bash_complete_wrapper ")))
+                 "__bash_complete_wrapper")))
 
 (ert-deftest bacom-test-execute-wordbreak-completion ()
   :tags '(bacom-integration)
