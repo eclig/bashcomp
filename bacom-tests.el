@@ -527,7 +527,7 @@
   :tags '(bacom)
   "bacom-addsuffix check directory"
   (should (string=
-           (cl-letf (((symbol-function 'file-accessible-directory-p)
+           (cl-letf (((symbol-function 'file-directory-p)
                       (lambda (a)
                         (string= a
                                  (if (memq system-type '(windows-nt ms-dos))
@@ -544,7 +544,7 @@
   :tags '(bacom)
   "bacom-addsuffix check directory, expand tilde"
   (should (string=
-           (cl-letf (((symbol-function 'file-accessible-directory-p)
+           (cl-letf (((symbol-function 'file-directory-p)
                       (lambda (a)
                         (string= a (concat (expand-file-name "y" "~/x")))))
                      (default-directory "~/x"))
