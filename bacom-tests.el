@@ -45,8 +45,8 @@
   (should (equal
            (sz-testutils-with-buffer
             '("a hello world b c")
-            (bacom-strings-from-tokens
-             (bacom-tokenize 1 (line-end-position))))
+            (mapcar 'bacom-token-string
+                    (bacom-tokenize 1 (line-end-position))))
            '("a" "hello" "world" "b" "c"))))
 
 (ert-deftest bacom-test-tokenize-simple-extra-spaces ()
@@ -55,9 +55,9 @@
   (should (equal
            (sz-testutils-with-buffer
             '("  a  hello \n world \t b \r c  ")
-            (bacom-strings-from-tokens
-             (bacom-tokenize 1 (line-end-position 2))))
-           '("a" "hello" "world" "b" "c"))))
+            (mapcar 'bacom-token-string
+                    (bacom-tokenize 1 (line-end-position 2))))
+           '("a" "hello" "world" "b" "c" ""))))
 
 (ert-deftest bacom-test-tokenize-escaped-char ()
   :tags '(bacom)
@@ -65,8 +65,8 @@
   (should (equal
            (sz-testutils-with-buffer
             '("a hello\\-world b c")
-            (bacom-strings-from-tokens
-             (bacom-tokenize 1 (line-end-position))))
+            (mapcar 'bacom-token-string
+                    (bacom-tokenize 1 (line-end-position))))
            '("a" "hello-world" "b" "c"))))
 
 (ert-deftest bacom-test-tokenize-escaped-space ()
@@ -75,8 +75,8 @@
   (should (equal
            (sz-testutils-with-buffer
             '("a hello\\ world b c")
-            (bacom-strings-from-tokens
-             (bacom-tokenize 1 (line-end-position))))
+            (mapcar 'bacom-token-string
+                    (bacom-tokenize 1 (line-end-position))))
            '("a" "hello world" "b" "c"))))
 
 (ert-deftest bacom-test-tokenize-escaped-hash ()
@@ -85,8 +85,8 @@
   (should (equal
            (sz-testutils-with-buffer
             '("a hello \\#world\\# b")
-            (bacom-strings-from-tokens
-             (bacom-tokenize 1 (line-end-position))))
+            (mapcar 'bacom-token-string
+                    (bacom-tokenize 1 (line-end-position))))
            '("a" "hello" "#world#" "b"))))
 
 (ert-deftest bacom-test-tokenize-double-quotes ()
@@ -95,8 +95,8 @@
   (should (equal
            (sz-testutils-with-buffer
             '("a \"hello world\" b c")
-            (bacom-strings-from-tokens
-             (bacom-tokenize 1 (line-end-position))))
+            (mapcar 'bacom-token-string
+                    (bacom-tokenize 1 (line-end-position))))
            '("a" "hello world" "b" "c"))))
 
 (ert-deftest bacom-test-tokenize-double-quotes-escaped ()
@@ -105,8 +105,8 @@
   (should (equal
            (sz-testutils-with-buffer
             '("a \"-\\\"hello world\\\"-\" b c")
-            (bacom-strings-from-tokens
-             (bacom-tokenize 1 (line-end-position))))
+            (mapcar 'bacom-token-string
+                    (bacom-tokenize 1 (line-end-position))))
            '("a" "-\"hello world\"-" "b" "c"))))
 
 (ert-deftest bacom-test-tokenize-single-quotes ()
@@ -115,8 +115,8 @@
   (should (equal
            (sz-testutils-with-buffer
             '("a \"hello world\" b c")
-            (bacom-strings-from-tokens
-             (bacom-tokenize 1 (line-end-position))))
+            (mapcar 'bacom-token-string
+                    (bacom-tokenize 1 (line-end-position))))
            '("a" "hello world" "b" "c"))))
 
 (ert-deftest bacom-test-tokenize-single-quotes-escaped ()
@@ -125,8 +125,8 @@
   (should (equal
            (sz-testutils-with-buffer
             '("a '-\\'hello world\\'-' b c")
-            (bacom-strings-from-tokens
-             (bacom-tokenize 1 (line-end-position))))
+            (mapcar 'bacom-token-string
+                    (bacom-tokenize 1 (line-end-position))))
            '("a" "-\\hello" "world'- b c"))))
 
 (ert-deftest bacom-test-get-token-open-single-quote ()
@@ -159,8 +159,8 @@
   (should (equal
            (sz-testutils-with-buffer
             '("a hel\"lo w\"o'rld b'c d")
-            (bacom-strings-from-tokens
-             (bacom-tokenize 1 (line-end-position))))
+            (mapcar 'bacom-token-string
+                    (bacom-tokenize 1 (line-end-position))))
            '("a" "hello world bc" "d"))))
 
 (ert-deftest bacom-test-tokenize-unescaped-semicolon ()
@@ -169,8 +169,8 @@
   (should (equal
            (sz-testutils-with-buffer
             "to infinity;and\\ beyond"
-            (bacom-strings-from-tokens
-             (bacom-tokenize 1 (line-end-position))))
+            (mapcar 'bacom-token-string
+                    (bacom-tokenize 1 (line-end-position))))
            '("to" "infinity" ";" "and beyond"))))
 
 (ert-deftest bacom-test-tokenize-unescaped-and ()
@@ -179,8 +179,8 @@
   (should (equal
            (sz-testutils-with-buffer
             "to infinity&&and\\ beyond"
-            (bacom-strings-from-tokens
-             (bacom-tokenize 1 (line-end-position))))
+            (mapcar 'bacom-token-string
+                    (bacom-tokenize 1 (line-end-position))))
            '("to" "infinity" "&&" "and beyond"))))
 
 (ert-deftest bacom-test-tokenize-unescaped-or ()
@@ -189,8 +189,8 @@
   (should (equal
            (sz-testutils-with-buffer
             "to infinity||and\\ beyond"
-            (bacom-strings-from-tokens
-             (bacom-tokenize 1 (line-end-position))))
+            (mapcar 'bacom-token-string
+                    (bacom-tokenize 1 (line-end-position))))
            '("to" "infinity" "||" "and beyond"))))
 
 (ert-deftest bacom-test-tokenize-quoted-separators ()
@@ -199,9 +199,18 @@
   (should (equal
            (sz-testutils-with-buffer
             "to \"infinity;&|and\" beyond"
-            (bacom-strings-from-tokens
-             (bacom-tokenize 1 (line-end-position))))
+            (mapcar 'bacom-token-string
+                    (bacom-tokenize 1 (line-end-position))))
            '("to" "infinity;&|and" "beyond"))))
+
+(ert-deftest bacom-test-parse-line-trailing-space ()
+  :tags '(bacom)
+  "The trailing space should lead to a new (empty) token at the end of the line."
+  (should (equal
+           (sz-testutils-with-buffer
+            "cd "
+            (bacom-parse-line 1 (line-end-position)))
+           '("cd " 3 1 "" ("cd" "")))))
 
 (ert-deftest bacom-test-parse-line-cursor-at-end-of-word ()
   :tags '(bacom)

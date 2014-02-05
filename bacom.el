@@ -220,9 +220,10 @@ and returns the variables Bash's `compgen' function expects as a
 list with the members:
  line - the relevant command between START and POS (string)
  point - position of the cursor in line (number)
- words - line split into words, unescaped (list of strings)
+ cword - 0-based index of the word to be completed in words (number)
  stub - the portion before point of the string to be completed (string)
- cword - 0-based index of the word to be completed in words (number)"
+ words - line split into words, unescaped (list of strings)
+"
   (bacom-process-tokens-1 (bacom-parse-current-command tokens) pos))
 
 (defun bacom-process-tokens-1 (tokens pos)
@@ -230,17 +231,8 @@ list with the members:
          (last-token (car (last tokens)))
          (start (or (bacom-token-begin first-token) pos))
          (end   (or (bacom-token-end last-token) pos))
-         (words (bacom-strings-from-tokens tokens))
-         (stub  (cond 
-                 ((and (/= start end) (= pos end))
-                  (car (last words)))
-                 ((and last-token (< pos end))
-                  (save-excursion
-                    (goto-char (bacom-token-begin last-token))
-                    (bacom-token-string (bacom-get-token pos))))
-                 (t ""))))
-    (when (or (> pos end) (= start end))
-      (setq words (append words '(""))))
+         (words (mapcar 'bacom-token-string tokens))
+         (stub  (car (last words))))
     (list
      (buffer-substring-no-properties start pos)
      (- pos start)
@@ -285,13 +277,6 @@ Return a sublist of TOKENS."
            (push token command)))))
      (or command (last tokens)))))
 
-(defun bacom-strings-from-tokens (tokens)
-  "Extract the strings from TOKENS.
-This function takes all strings from TOKENS and retrun it as a
-list of strings.
-TOKENS should be in the format returned by `bacom-tokenize'."
-  (mapcar 'bacom-token-string tokens))
-
 (defun bacom-tokenize (start end)
   "Tokenize the portion of the current buffer between START and END.
 This function splits a Bash command line into tokens.  It knows
@@ -301,9 +286,9 @@ Return a list of tokens found between START and END.  Note that
 the last token might end past END."
   (save-excursion
     (goto-char start)
-    (skip-chars-forward " \t\n\r" end)
     (let ((tokens '()))
       (while (< (point) end)
+        (skip-chars-forward " \t\n\r" end)
         (push (bacom-get-token) tokens))
       (nreverse tokens))))
 
@@ -316,7 +301,7 @@ should stop.
 Return a new token.  Note that the string in a token is never
 escaped.  For example, if the token is 'hello world', the string
 contains \"hello world\", without the quotes."
-  (bacom-collect-token (bacom-token-new "" (point) nil) nil limit))
+  (bacom-collect-token (bacom-token-new "" (point) (point)) nil limit))
 
 (defun bacom-collect-token (token quote &optional limit)
   "Collect characters in TOKEN.
@@ -362,7 +347,6 @@ Return TOKEN."
       (when quote
         (push (cons 'quote quote) token))
       (bacom-token-set-end token (point))
-      (skip-chars-forward " \t\n\r" limit)
       token))))
 
 (defconst bacom-nonsep-alist
@@ -478,8 +462,8 @@ BUFFER should contain the output of \"complete -p\"."
       (goto-char (point-max))
       (while (= 0 (forward-line -1))
         (bacom-add-rule
-         (bacom-strings-from-tokens
-          (bacom-tokenize (line-beginning-position) (line-end-position)))
+         (mapcar 'bacom-token-string
+                 (bacom-tokenize (line-beginning-position) (line-end-position)))
          rules)))))
 
 (defun bacom-add-rule (words rules)
