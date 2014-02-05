@@ -574,7 +574,7 @@
            (sz-testutils-with-buffer
             (format "%shello world\n%shello \n\n" bacom-candidates-prefix bacom-candidates-prefix)
             (bacom-extract-candidates (current-buffer)))
-           '("hello world" "hello "))))
+           '("hello world" "hello"))))
 
 (ert-deftest bacom-test-extract-candidates-with-spurious-output ()
   :tags '(bacom)

@@ -409,7 +409,10 @@ which sees."
         list)
     (dolist (line buffer-lines (nreverse list))
       (and (string-prefix-p bacom-candidates-prefix line)
-           (push (substring line (length bacom-candidates-prefix)) list)))))
+           (push (substring line
+                            (length bacom-candidates-prefix)
+                            (string-match-p (rx (+ (char space)) eol) line))
+                 list)))))
 
 (defun bacom-postprocess (candidate &optional open-quote)
   "Post-process the completion candidate given in CANDIDATE.
