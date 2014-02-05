@@ -502,71 +502,6 @@
                (buffer-string)))
            "line1\nline2\n")))
 
-(ert-deftest bacom-test-addsuffix-ends-with-slash ()
-  :tags '(bacom)
-  "bacom-addsuffix ends with /"
-  (should (string=
-           (cl-letf (((symbol-function 'file-accessible-directory-p)
-                      (lambda (a)
-                        (error "unexpected"))))
-             (bacom-addsuffix "hello/"))
-           "hello/")))
-
-(ert-deftest bacom-test-addsuffix-ends-with-space ()
-  :tags '(bacom)
-  "bacom-addsuffix ends with space"
-  (should (string=
-           (cl-letf (((symbol-function 'file-accessible-directory-p)
-                      (lambda (a)
-                        (error "unexpected"))))
-             (bacom-addsuffix "hello "))
-           "hello ")))
-
-(ert-deftest bacom-test-addsuffix-ends-with-separator ()
-  :tags '(bacom)
-  "bacom-addsuffix ends with separator"
-  (should (string=
-           (cl-letf (((symbol-function 'file-accessible-directory-p)
-                      (lambda (a)
-                        (error "unexpected"))))
-             (bacom-addsuffix "hello:"))
-           "hello:")))
-
-(ert-deftest bacom-test-addsuffix-check-directory ()
-  :tags '(bacom)
-  "bacom-addsuffix check directory"
-  (should (string=
-           (cl-letf (((symbol-function 'file-directory-p)
-                      (lambda (a)
-                        (string= a
-                                 (if (memq system-type '(windows-nt ms-dos))
-                                     "c:/tmp/hello"
-                                   "/tmp/hello"))))
-                     (default-directory
-                       (if (memq system-type '(windows-nt ms-dos))
-                           "c:/tmp"
-                         "/tmp")))
-             (bacom-addsuffix "hello"))
-           "hello/")))
-
-(ert-deftest bacom-test-addsuffix-check-directory-expand-tilde ()
-  :tags '(bacom)
-  "bacom-addsuffix check directory, expand tilde"
-  (should (string=
-           (cl-letf (((symbol-function 'file-directory-p)
-                      (lambda (a)
-                        (string= a (concat (expand-file-name "y" "~/x")))))
-                     (default-directory "~/x"))
-             (bacom-addsuffix "y"))
-           "y/")))
-
-(ert-deftest bacom-test-postprocess-subset-of-the-prefix ()
-  :tags '(bacom)
-  "bacom-postprocess subset of the prefix"
-  (should (string=
-           (bacom-postprocess "Dexter" "Dexter'")
-           "Dexter")))
-
 (ert-deftest bacom-test-extract-candidates ()
   :tags '(bacom)
   "bacom-extract-candidates"
@@ -731,7 +666,7 @@
                     (completion-at-point)
                     (sit-for 1)
                     (buffer-substring-no-properties pos (point))))
-                 "__bash_complete_wrapper")))
+                 "__bash_complete_wrapper ")))
 
 (ert-deftest bacom-test-execute-wordbreak-completion ()
   :tags '(bacom-integration)
@@ -757,7 +692,7 @@
                     (completion-at-point)
                     (sit-for 1)
                     (buffer-substring-no-properties pos (point))))
-                 "foo abc")))
+                 "foo abc ")))
 
 (ert-deftest bacom-test-completion-with-restart ()
   :tags '(bacom-integration)
@@ -771,7 +706,7 @@
                     (completion-at-point)
                     (sit-for 1)
                     (buffer-substring-no-properties pos (point))))
-                 "foo abc")))
+                 "foo abc ")))
 
 (provide 'bacom-tests)
 ;;; bacom-tests.el ends here

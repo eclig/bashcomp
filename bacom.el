@@ -71,6 +71,7 @@
 
 (require 'cl-lib)
 (require 'comint)
+(require 'shell)
 
 ;;; Code:
 
@@ -135,7 +136,17 @@ completion.  Return nil if no match was found."
                     (bacom-token-begin current-token))
                   (bacom-token-end current-token)
                   completions
-                  :exclusive 'yes)
+                  :exit-function
+                  (lambda (string status)
+                    (when (eq status 'finished)
+                      (unless (memq (char-before) (append '(?/ ?\s) bacom-wordbreaks))
+                        (let ((suffix
+                               (if (file-directory-p (comint-directory (shell-unquote-argument string)))
+                                   "/"
+                                 " ")))
+                          (if (looking-at suffix)
+                              (goto-char (match-end 0))
+                            (insert suffix)))))))
           ;; No standard completion found, try filename completion after a wordbreak
           (bacom-dynamic-wordbreak-complete process current-token pos))))))
 
@@ -381,17 +392,19 @@ function should accept one argument `stub' and return the
 completion command to be called to complete it.  This allows for
 recalculating the completion command when dynamically loaded
 completion rules are being used.
-Completion candidates are then passed to `bacom-postprocess',
+Each completion candidate is then passed to `bacom-escape-candidate',
 which sees."
   (let* ((cmd (if (functionp command) (funcall command stub) command))
          (completions (bacom-generate-completions-1 process cmd)))
+    ;; TODO: consider using catch/throw (with catch in
+    ;; `bacom-dynamic-complete' e.g.) for restarts
     (if (equal completions '("*bacom_restart*"))
         (progn
           ;; TODO: only reread completion rules for the corresponding program!!!
           (bacom-readin-completion-rules process bacom-rules)
           (bacom-generate-completions process command stub open-quote))
       (mapcar (lambda (str)
-                (bacom-postprocess str open-quote))
+                (bacom-escape-candidate str open-quote))
               completions))))
 
 (defun bacom-generate-completions-1 (process command)
@@ -414,13 +427,6 @@ which sees."
                             (string-match-p (rx (+ (char space)) eol) line))
                  list)))))
 
-(defun bacom-postprocess (candidate &optional open-quote)
-  "Post-process the completion candidate given in CANDIDATE.
-Return the modified version of the completion candidate.
-Optional argument OPEN-QUOTE is the quote that's still open, a
-character (' or \"), or nil."
-  (bacom-escape-candidate (bacom-addsuffix candidate) open-quote))
-
 (defun bacom-escape-candidate (completion-candidate open-quote)
   "Escapes COMPLETION-CANDIDATE.
 This function escapes all special characters in the result of
@@ -439,20 +445,6 @@ Return a possibly escaped version of COMPLETION-CANDIDATE."
     (replace-regexp-in-string "\"" "\\\"" completion-candidate :literal t))
    (t
     completion-candidate)))
-
-(defun bacom-addsuffix (str)
-  "Add a directory suffix to STR if it looks like a directory.
-This function looks for a directory called STR relative to the
-buffer-local variable `default-directory'.  If it exists, it returns
-\(concat STR \"/\").  Otherwise it returns STR."
-  (if (and (null (string-match-p bacom-known-suffixes-regexp str))
-           (file-directory-p (comint-directory str)))
-      (concat str "/")
-    str))
-
-(defconst bacom-known-suffixes-regexp
-  (concat (regexp-opt-charset (append '(?/ ?\s) bacom-wordbreaks)) "$")
-  "Regexp matching known suffixes for `bacom-addsuffix'.")
 
 
 ;;; Completion table
