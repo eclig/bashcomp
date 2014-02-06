@@ -537,6 +537,7 @@ candidates."
 Call this function if you have updated your ~/.bashrc or any Bash init scripts
 and would like Bash completion in Emacs to take these changes into account."
   (interactive)
+  (comint-redirect-cleanup)
   (setq bashcomp-initialized nil))
 
 (defun bashcomp-send (cmd process output-buffer)
