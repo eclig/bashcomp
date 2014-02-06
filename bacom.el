@@ -298,9 +298,10 @@ the last token might end past END."
   (save-excursion
     (goto-char start)
     (let ((tokens '()))
-      (while (< (point) end)
-        (skip-chars-forward " \t\n\r" end)
-        (push (bacom-get-token) tokens))
+      (while (progn
+               (skip-chars-forward " \t\n\r" end)
+               (push (bacom-get-token) tokens)
+               (< (point) end)))
       (nreverse tokens))))
 
 (defun bacom-get-token (&optional limit)

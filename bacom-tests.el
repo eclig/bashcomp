@@ -203,6 +203,15 @@
                     (bacom-tokenize 1 (line-end-position))))
            '("to" "infinity;&|and" "beyond"))))
 
+(ert-deftest bacom-test-parse-line-empty-line ()
+  :tags '(bacom)
+  "The empty line should lead to a single empty token."
+  (should (equal
+           (sz-testutils-with-buffer
+            ""
+            (bacom-parse-line 1 (line-end-position)))
+           '("" 0 0 "" ("")))))
+
 (ert-deftest bacom-test-parse-line-trailing-space ()
   :tags '(bacom)
   "The trailing space should lead to a new (empty) token at the end of the line."
