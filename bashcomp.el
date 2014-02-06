@@ -1,10 +1,11 @@
-;;; bashcomp.el --- Bourne-Again Completion in a shell buffer
+;;; bashcomp.el --- Bourne-Again Shell Completion
 
 ;; Copyright (C) 2013, 2014 Emílio Lopes
 ;; Copyright (C) 2009 Stephane Zermatten
 
 ;; Author: Stephane Zermatten <szermatt@gmx.net>
 ;;         Emílio Lopes <eclig@gmx.net>
+;; Maintainer: Emílio Lopes <eclig@gmx.net>
 
 ;; This program is free software: you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -67,7 +68,6 @@
 ;; - The variable `comint-prompt-regexp' hast be set to the
 ;;   correct prompt for your Shell.
 ;;
-;; bashcomp.el does not work on XEmacs?
 
 (require 'cl-lib)
 (require 'comint)
