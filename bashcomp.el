@@ -1,4 +1,4 @@
-;;; bacom.el --- Bourne-Again Completion in a shell buffer
+;;; bashcomp.el --- Bourne-Again Completion in a shell buffer
 
 ;; Copyright (C) 2013, 2014 Emílio Lopes
 ;; Copyright (C) 2009 Stephane Zermatten
@@ -32,7 +32,7 @@
 ;; - escapes special characters when expanding file names
 ;; - is configurable through programmable Bash completion
 ;;
-;; A simpler and more complete alternative to bacom.el is to
+;; A simpler and more complete alternative to bashcomp.el is to
 ;; run a Bash shell in a buffer in term mode(M-x `ansi-term').
 ;; Unfortunately, many Emacs editing features are not available when
 ;; running in term mode.  Also, term mode is not available in
@@ -54,7 +54,7 @@
 ;;   . /etc/bash_completion
 ;;
 ;; Right after enabling Bash's programmable completion, and whenever
-;; you make changes to you .bashrc, call `bacom-reset' to make sure
+;; you make changes to you .bashrc, call `bashcomp-reset' to make sure
 ;; Bash completion takes your new settings into account.
 ;;
 ;; CAVEATS
@@ -67,7 +67,7 @@
 ;; - The variable `comint-prompt-regexp' hast be set to the
 ;;   correct prompt for your Shell.
 ;;
-;; bacom.el does not work on XEmacs?
+;; bashcomp.el does not work on XEmacs?
 
 (require 'cl-lib)
 (require 'comint)
@@ -77,33 +77,33 @@
 
 ;;; User options
 
-(defgroup bacom nil
+(defgroup bashcomp nil
   "Bash configurable command-line completion "
   :group 'shell
   :group 'shell-command)
 
 ;;; Internal variables and constants
 
-(defvar-local bacom-initialized nil
-  "Non-nil if `bacom' was already initialized.")
+(defvar-local bashcomp-initialized nil
+  "Non-nil if `bashcomp' was already initialized.")
 
-(defvar-local bacom-rules (make-hash-table :test 'equal)
+(defvar-local bashcomp-rules (make-hash-table :test 'equal)
   "Mapping from command names to Bash's completion rules.")
 
-(defconst bacom-wordbreaks '(?\" ?' ?@ ?> ?< ?= ?\; ?| ?& ?\( ?:)
+(defconst bashcomp-wordbreaks '(?\" ?' ?@ ?> ?< ?= ?\; ?| ?& ?\( ?:)
   "List of word break characters.
 This is the equivalent of COMP_WORDBREAKS: special characters
 that are considered word breaks in some cases when doing
 completion.  This was introduced initially to support file
 completion in colon-separated values.")
 
-(defconst bacom-candidates-prefix "\e\[bacom]:"
+(defconst bashcomp-candidates-prefix "\e\[bashcomp]:"
   "A prefix to be added by Bash's `compgen' to tag completion candidates.")
 
 ;;; Completion functions
 
 ;;;###autoload
-(defun bacom-dynamic-complete ()
+(defun bashcomp-dynamic-complete ()
   "Complete word at cursor using Bash completion.
 This function is meant to be added into
 `shell-dynamic-complete-functions' or
@@ -115,31 +115,31 @@ completion.  Return nil if no match was found."
   (let* ((process (get-buffer-process (current-buffer)))
          (start (comint-line-beginning-position))
          (pos (point))
-         (tokens (bacom-tokenize start pos))
+         (tokens (bashcomp-tokenize start pos))
          (current-token (car (last tokens)))
-         (open-quote (bacom-token-quote current-token))
-         (parsed (bacom-process-tokens tokens pos)))
-    (unless bacom-initialized
-      (bacom-initialize process)
-      (setq bacom-initialized t))
+         (open-quote (bashcomp-token-quote current-token))
+         (parsed (bashcomp-process-tokens tokens pos)))
+    (unless bashcomp-initialized
+      (bashcomp-initialize process)
+      (setq bashcomp-initialized t))
     (destructuring-bind (line point cword stub words) parsed
       (let ((completions
-             (bacom-generate-completions
+             (bashcomp-generate-completions
               process
               (lambda (stub)
-                (bacom-generate-line line point words cword stub))
+                (bashcomp-generate-line line point words cword stub))
               stub
               open-quote)))
         (if completions
             (list (if open-quote
-                      (1+ (bacom-token-begin current-token))
-                    (bacom-token-begin current-token))
-                  (bacom-token-end current-token)
+                      (1+ (bashcomp-token-begin current-token))
+                    (bashcomp-token-begin current-token))
+                  (bashcomp-token-end current-token)
                   completions
                   :exit-function
                   (lambda (string status)
                     (when (eq status 'finished)
-                      (unless (memq (char-before) (append '(?/ ?\s) bacom-wordbreaks))
+                      (unless (memq (char-before) (append '(?/ ?\s) bashcomp-wordbreaks))
                         (let ((suffix
                                (if (file-directory-p (comint-directory (shell-unquote-argument string)))
                                    "/"
@@ -148,23 +148,23 @@ completion.  Return nil if no match was found."
                               (goto-char (match-end 0))
                             (insert suffix)))))))
           ;; No standard completion found, try filename completion after a wordbreak
-          (bacom-dynamic-wordbreak-complete process current-token pos))))))
+          (bashcomp-dynamic-wordbreak-complete process current-token pos))))))
 
-(defun bacom-dynamic-wordbreak-complete (process current-token pos)
-  (let* ((wordbreak-regexp (format "^%s" (mapconcat #'string bacom-wordbreaks "")))
+(defun bashcomp-dynamic-wordbreak-complete (process current-token pos)
+  (let* ((wordbreak-regexp (format "^%s" (mapconcat #'string bashcomp-wordbreaks "")))
          (token-after-wordbreak (save-excursion
                                   (skip-chars-backward wordbreak-regexp)
-                                  (bacom-get-token pos)))
-         (stub (bacom-token-string token-after-wordbreak)))
+                                  (bashcomp-get-token pos)))
+         (stub (bashcomp-token-string token-after-wordbreak)))
     ;; TODO: Warning: reference to free variable `open-quote'
-    (let ((completions (bacom-generate-completions process
-                                                   (bacom-compgen -f -- ,stub)
+    (let ((completions (bashcomp-generate-completions process
+                                                   (bashcomp-compgen -f -- ,stub)
                                                    stub
                                                    open-quote)))
       (when completions
-        (list (bacom-token-begin token-after-wordbreak)
+        (list (bashcomp-token-begin token-after-wordbreak)
               (save-excursion
-                (skip-chars-forward wordbreak-regexp (bacom-token-end current-token))
+                (skip-chars-forward wordbreak-regexp (bashcomp-token-end current-token))
                 (point))
               completions
               :exclusive 'no)))))
@@ -173,38 +173,38 @@ completion.  Return nil if no match was found."
 
 ;;; Token functions
 
-(defsubst bacom-token-new (string start end)
+(defsubst bashcomp-token-new (string start end)
   "Return a new token containing STRING extending from START to END."
   (list
    (cons 'str string)
    (cons 'range (cons start end))))
 
-(defsubst bacom-token-range (token)
+(defsubst bashcomp-token-range (token)
   "Return the TOKEN range as a cons: (start . end)."
   (cdr (assq 'range token)))
 
-(defsubst bacom-token-begin (token)
+(defsubst bashcomp-token-begin (token)
   "Return the buffer position where TOKEN starts."
   (cadr (assq 'range token)))
 
-(defsubst bacom-token-end (token)
+(defsubst bashcomp-token-end (token)
   "Return the buffer position where TOKEN ends."
   (cddr (assq 'range token)))
 
-(defsubst bacom-token-set-end (token pos)
+(defsubst bashcomp-token-set-end (token pos)
   "Set the end position of TOKEN to the POS."
-  (setcdr (bacom-token-range token) pos))
+  (setcdr (bashcomp-token-range token) pos))
 
-(defsubst bacom-token-append-string (token str)
+(defsubst bashcomp-token-append-string (token str)
   "Append to TOKEN the string STR."
   (let ((str-cons (assq 'str token)))
     (setcdr str-cons (concat (cdr str-cons) str))))
 
-(defsubst bacom-token-string (token)
+(defsubst bashcomp-token-string (token)
   "Return the TOKEN string."
   (cdr (assq 'str token)))
 
-(defsubst bacom-token-quote (token)
+(defsubst bashcomp-token-quote (token)
   "Return the quote character that was still open in TOKEN."
   (cdr (assq 'quote token)))
 
@@ -213,20 +213,20 @@ completion.  Return nil if no match was found."
 
 ;; TODO: use `shell-quote-argument' instead?
 ;; See also `tramp-shell-quote-argument'.
-(defun bacom-quote (word)
+(defun bashcomp-quote (word)
   "Quote WORD as appropriate for passing as an arguments to the shell."
   (if (string-match-p "^[a-zA-Z0-9_./-]*$" word)
       word
     (format "'%s'" (replace-regexp-in-string "'" "'\\''" word :literal t))))
 
 ;; TODO: not used anywhere, except in the regression tests
-(defun bacom-parse-line (start pos)
-  (bacom-process-tokens
-   (bacom-tokenize start pos) pos))
+(defun bashcomp-parse-line (start pos)
+  (bashcomp-process-tokens
+   (bashcomp-tokenize start pos) pos))
 
-(defun bacom-process-tokens (tokens pos)
+(defun bashcomp-process-tokens (tokens pos)
   "Process a command line split into TOKENS that end at POS.
-This function takes a list of tokens built by `bacom-tokenize'
+This function takes a list of tokens built by `bashcomp-tokenize'
 and returns the variables Bash's `compgen' function expects as a
 list with the members:
  line - the relevant command between START and POS (string)
@@ -235,14 +235,14 @@ list with the members:
  stub - the portion before point of the string to be completed (string)
  words - line split into words, unescaped (list of strings)
 "
-  (bacom-process-tokens-1 (bacom-parse-current-command tokens) pos))
+  (bashcomp-process-tokens-1 (bashcomp-parse-current-command tokens) pos))
 
-(defun bacom-process-tokens-1 (tokens pos)
+(defun bashcomp-process-tokens-1 (tokens pos)
   (let* ((first-token (car tokens))
          (last-token (car (last tokens)))
-         (start (or (bacom-token-begin first-token) pos))
-         (end   (or (bacom-token-end last-token) pos))
-         (words (mapcar 'bacom-token-string tokens))
+         (start (or (bashcomp-token-begin first-token) pos))
+         (end   (or (bashcomp-token-end last-token) pos))
+         (words (mapcar 'bashcomp-token-string tokens))
          (stub  (car (last words))))
     (list
      (buffer-substring-no-properties start pos)
@@ -251,10 +251,10 @@ list with the members:
      stub
      words)))
 
-(defun bacom-parse-current-command (tokens)
+(defun bashcomp-parse-current-command (tokens)
   "Extract from TOKENS the tokens forming the current command.
 This function takes a list of TOKENS created by
-`bacom-tokenize' for the current buffer and select the
+`bashcomp-tokenize' for the current buffer and select the
 tokens on this list that form the current command given that the
 word to be completed is the last token.
 For example, given this stream of tokens:
@@ -268,10 +268,10 @@ Return a sublist of TOKENS."
    (let ((command nil)
          (state 'initial))
      (dolist (token tokens)
-       (let* ((string (bacom-token-string token))
+       (let* ((string (bashcomp-token-string token))
               (terminal-p
                (and (member string '(";" "&" "|" "&&" "||"))
-                    (let ((range (bacom-token-range token)))
+                    (let ((range (bashcomp-token-range token)))
                       (= (- (cdr range) (car range))
                          (length string))))))
          (cond
@@ -288,7 +288,7 @@ Return a sublist of TOKENS."
            (push token command)))))
      (or command (last tokens)))))
 
-(defun bacom-tokenize (start end)
+(defun bashcomp-tokenize (start end)
   "Tokenize the portion of the current buffer between START and END.
 This function splits a Bash command line into tokens.  It knows
 about quotes, escape characters and special command separators such
@@ -300,11 +300,11 @@ the last token might end past END."
     (let ((tokens '()))
       (while (progn
                (skip-chars-forward " \t\n\r" end)
-               (push (bacom-get-token) tokens)
+               (push (bashcomp-get-token) tokens)
                (< (point) end)))
       (nreverse tokens))))
 
-(defun bacom-get-token (&optional limit)
+(defun bashcomp-get-token (&optional limit)
   "Return the next token in the current buffer.
 This function expects the point to be either at the start of a
 new token or just after a closing quote in a token.
@@ -313,9 +313,9 @@ should stop.
 Return a new token.  Note that the string in a token is never
 escaped.  For example, if the token is 'hello world', the string
 contains \"hello world\", without the quotes."
-  (bacom-collect-token (bacom-token-new "" (point) (point)) nil limit))
+  (bashcomp-collect-token (bashcomp-token-new "" (point) (point)) nil limit))
 
-(defun bacom-collect-token (token quote &optional limit)
+(defun bashcomp-collect-token (token quote &optional limit)
   "Collect characters in TOKEN.
 TOKEN is the token currently being built.
 QUOTE specifies the currently active quotation character: either
@@ -327,8 +327,8 @@ Return TOKEN."
   ;; append them
   (let ((beg (point)))
     (when (zerop (skip-chars-forward ";&|" limit))
-      (skip-chars-forward (bacom-nonsep quote) limit))
-    (bacom-token-append-string
+      (skip-chars-forward (bashcomp-nonsep quote) limit))
+    (bashcomp-token-append-string
      token
      (buffer-substring-no-properties beg (point))))
   (let ((next-char (char-after)))
@@ -339,82 +339,82 @@ Return TOKEN."
       (let ((next-char (char-after)))
         (when next-char
           (forward-char)
-          (bacom-token-append-string token (char-to-string next-char))))
-      (bacom-collect-token token quote limit))
+          (bashcomp-token-append-string token (char-to-string next-char))))
+      (bashcomp-collect-token token quote limit))
      ;; opening quote
      ((and (not quote) next-char (memq next-char '(?\' ?\")))
       (forward-char)
-      (bacom-collect-token token next-char limit))
+      (bashcomp-collect-token token next-char limit))
      ;; closing quote
      ((and quote next-char (= quote next-char))
       (forward-char)
-      (bacom-collect-token token nil limit))
+      (bashcomp-collect-token token nil limit))
      ;; space inside a quote
      ((and quote next-char (/= quote next-char) (or (null limit) (< (point) limit)))
       (forward-char)
-      (bacom-token-append-string token (char-to-string next-char))
-      (bacom-collect-token token quote limit))
+      (bashcomp-token-append-string token (char-to-string next-char))
+      (bashcomp-collect-token token quote limit))
      ;; word end or limit reached
      (t
       (when quote
         (push (cons 'quote quote) token))
-      (bacom-token-set-end token (point))
+      (bashcomp-token-set-end token (point))
       token))))
 
-(defconst bacom-nonsep-alist
+(defconst bashcomp-nonsep-alist
   '((nil . "^ \t\n\r;&|'\"\\\\#")
     (?'  . "^ \t\n\r'")
     (?\" . "^ \t\n\r\"\\\\"))
   "Alist of sets of non-breaking characters.
 Keeps a regexp specifying the set of non-breaking characters for
 all quoting environment (no quote, single quote and double
-quote).  Get it using `bacom-nonsep'.")
+quote).  Get it using `bashcomp-nonsep'.")
 
-(defun bacom-nonsep (quote)
+(defun bashcomp-nonsep (quote)
   "Return the set of non-breaking characters when QUOTE is the current quote.
 QUOTE should be nil, ?' or ?\"."
-  (cdr (assq quote bacom-nonsep-alist)))
+  (cdr (assq quote bashcomp-nonsep-alist)))
 
 
 ;;; Getting completion candidates from Bash
 
-(defmacro bacom-compgen (&rest args)
-  `(concat (format "compgen -P '%s' " bacom-candidates-prefix)
+(defmacro bashcomp-compgen (&rest args)
+  `(concat (format "compgen -P '%s' " bashcomp-candidates-prefix)
            (mapconcat (lambda (s)
-                        (bacom-quote (format "%s" s)))
+                        (bashcomp-quote (format "%s" s)))
                       (backquote ,args)
                       " ")
            " 2>/dev/null"))
 
-(defun bacom-generate-completions (process command stub open-quote)
+(defun bashcomp-generate-completions (process command stub open-quote)
   "Run compgen command COMMAND in process PROCESS.
 COMMAND can be a string or a function: a string is used as is; a
 function should accept one argument `stub' and return the
 completion command to be called to complete it.  This allows for
 recalculating the completion command when dynamically loaded
 completion rules are being used.
-Each completion candidate is then passed to `bacom-escape-candidate',
+Each completion candidate is then passed to `bashcomp-escape-candidate',
 which sees."
   (let* ((cmd (if (functionp command) (funcall command stub) command))
-         (completions (bacom-generate-completions-1 process cmd)))
+         (completions (bashcomp-generate-completions-1 process cmd)))
     ;; TODO: consider using catch/throw (with catch in
-    ;; `bacom-dynamic-complete' e.g.) for restarts
-    (if (equal completions '("*bacom_restart*"))
+    ;; `bashcomp-dynamic-complete' e.g.) for restarts
+    (if (equal completions '("*bashcomp_restart*"))
         (progn
           ;; TODO: only reread completion rules for the corresponding program!!!
-          (bacom-readin-completion-rules process bacom-rules)
-          (bacom-generate-completions process command stub open-quote))
+          (bashcomp-readin-completion-rules process bashcomp-rules)
+          (bashcomp-generate-completions process command stub open-quote))
       (mapcar (lambda (str)
-                (bacom-escape-candidate str open-quote))
+                (bashcomp-escape-candidate str open-quote))
               completions))))
 
-(defun bacom-generate-completions-1 (process command)
-  (bacom-call-with-temp-buffer
+(defun bashcomp-generate-completions-1 (process command)
+  (bashcomp-call-with-temp-buffer
    (lambda (temp-buffer)
-     (bacom-send command process temp-buffer)
-     (bacom-extract-candidates temp-buffer))))
+     (bashcomp-send command process temp-buffer)
+     (bashcomp-extract-candidates temp-buffer))))
 
-(defun bacom-extract-candidates (buffer)
+(defun bashcomp-extract-candidates (buffer)
   "Extract the completion candidates in buffer BUFFER."
   (let ((buffer-lines
          (with-current-buffer buffer
@@ -422,13 +422,13 @@ which sees."
              (split-string (buffer-string) "\n" t))))
         list)
     (dolist (line buffer-lines (nreverse list))
-      (and (string-prefix-p bacom-candidates-prefix line)
+      (and (string-prefix-p bashcomp-candidates-prefix line)
            (push (substring line
-                            (length bacom-candidates-prefix)
+                            (length bashcomp-candidates-prefix)
                             (string-match-p (rx (+ (char space)) eol) line))
                  list)))))
 
-(defun bacom-escape-candidate (completion-candidate open-quote)
+(defun bashcomp-escape-candidate (completion-candidate open-quote)
   "Escapes COMPLETION-CANDIDATE.
 This function escapes all special characters in the result of
 Bash completion.  It does nothing if COMPLETION-CANDIDATE looks
@@ -450,19 +450,19 @@ Return a possibly escaped version of COMPLETION-CANDIDATE."
 
 ;;; Completion table
 
-(defun bacom-initialize-rules (buffer rules)
+(defun bashcomp-initialize-rules (buffer rules)
   "Initialize hash table RULES from the contents of BUFFER.
 BUFFER should contain the output of \"complete -p\"."
   (with-current-buffer buffer
     (save-excursion
       (goto-char (point-max))
       (while (= 0 (forward-line -1))
-        (bacom-add-rule
-         (mapcar 'bacom-token-string
-                 (bacom-tokenize (line-beginning-position) (line-end-position)))
+        (bashcomp-add-rule
+         (mapcar 'bashcomp-token-string
+                 (bashcomp-tokenize (line-beginning-position) (line-end-position)))
          rules)))))
 
-(defun bacom-add-rule (words rules)
+(defun bashcomp-add-rule (words rules)
   "Add the completion rule defined by WORDS to the hash table RULES.
 The hash key is the command name for which a the rule is defined."
   (when (string= "complete" (pop words))
@@ -471,18 +471,18 @@ The hash key is the command name for which a the rule is defined."
       (when (and command options)
         (puthash command options rules)))))
 
-(defun bacom-specification (command)
+(defun bashcomp-specification (command)
   "Return the completion specification for COMMAND or nil, if none found."
-  (or (gethash command bacom-rules)
-      (gethash (file-name-nondirectory command) bacom-rules)
+  (or (gethash command bashcomp-rules)
+      (gethash (file-name-nondirectory command) bashcomp-rules)
       (and (memq system-type '(ms-dos windows-nt))
            (gethash
             (file-name-nondirectory (file-name-sans-extension command))
-            bacom-rules))
+            bashcomp-rules))
       ;; "-D" is the default completion spec
-      (gethash "-D" bacom-rules)))
+      (gethash "-D" bashcomp-rules)))
 
-(defun bacom-generate-line (line pos words cword stub)
+(defun bashcomp-generate-line (line pos words cword stub)
   "Generate a command-line that calls Bash's `compgen'.
 This function looks for a completion rule matching the command
 name in LINE.  If it finds one, it uses it.  Otherwise, it tries
@@ -500,16 +500,16 @@ arguments will be passed to this function or command as:
 Return a Bash command-line that calls compgen to get the completion
 candidates."
   (let* ((command (car words))
-         (compgen-args (bacom-specification command)))
+         (compgen-args (bashcomp-specification command)))
     (cond
      ((= cword 0)
       ;; a command. let emacs expand executable, let Bash
       ;; expand builtins, aliases and functions
-      (bacom-compgen -b -c -a -A function -- ,stub))
+      (bashcomp-compgen -b -c -a -A function -- ,stub))
 
      ((not compgen-args)
       ;; no completion configured for this command
-      (bacom-compgen -f -- ,stub))
+      (bashcomp-compgen -f -- ,stub))
 
      ((or (member "-F" compgen-args) (member "-C" compgen-args))
       ;; custom completion with a function or command
@@ -519,27 +519,27 @@ candidates."
         (setcar function "-F")
         (setcar (cdr function) "__bash_complete_wrapper")
         (concat (format "__BASH_COMPLETE_WRAPPER=%s "
-                        (bacom-quote
+                        (bashcomp-quote
                          (format "COMP_LINE=%s; COMP_POINT=%s; COMP_CWORD=%s; COMP_WORDS=( %s ); %s \"${COMP_WORDS[@]}\""
-                                 (bacom-quote line)
+                                 (bashcomp-quote line)
                                  pos
                                  cword
-                                 (mapconcat 'bacom-quote words " ")
-                                 (bacom-quote function-name))))
-                (bacom-compgen ,@args -- ,stub))))
+                                 (mapconcat 'bashcomp-quote words " ")
+                                 (bashcomp-quote function-name))))
+                (bashcomp-compgen ,@args -- ,stub))))
      (t
       ;; simple custom completion
-      (bacom-compgen ,@compgen-args -- ,stub)))))
+      (bashcomp-compgen ,@compgen-args -- ,stub)))))
 
 ;;;###autoload
-(defun bacom-reset ()
+(defun bashcomp-reset ()
   "Force the next completion command to reread the completion table.
 Call this function if you have updated your ~/.bashrc or any Bash init scripts
 and would like Bash completion in Emacs to take these changes into account."
   (interactive)
-  (setq bacom-initialized nil))
+  (setq bashcomp-initialized nil))
 
-(defun bacom-send (cmd process output-buffer)
+(defun bashcomp-send (cmd process output-buffer)
   "Send CMD to the Bash process PROCESS.
 CMD is a Bash command, without the final newline.  The output of
 CMD, if any, goes into the buffer given by OUTPUT-BUFFER."
@@ -560,39 +560,39 @@ CMD, if any, goes into the buffer given by OUTPUT-BUFFER."
         (unless comint-redirect-completed
           (comint-redirect-cleanup))))))
 
-(defun bacom-initialize (process)
-  "Initialize `bacom' in Bash process PROCESS."
-  (bacom-initialize-complete-wrapper process)
-  (clrhash bacom-rules)
-  (bacom-readin-completion-rules process bacom-rules))
+(defun bashcomp-initialize (process)
+  "Initialize `bashcomp' in Bash process PROCESS."
+  (bashcomp-initialize-complete-wrapper process)
+  (clrhash bashcomp-rules)
+  (bashcomp-readin-completion-rules process bashcomp-rules))
 
 ;; put this in a parameter in case an user wants to do something smart.
-(defvar bacom-complete-wrapper
+(defvar bashcomp-complete-wrapper
   (concat
-   "function __bash_complete_wrapper { eval $__BASH_COMPLETE_WRAPPER; test $? -eq 124 && COMPREPLY=('*bacom_restart*');};"
+   "function __bash_complete_wrapper { eval $__BASH_COMPLETE_WRAPPER; test $? -eq 124 && COMPREPLY=('*bashcomp_restart*');};"
    "function quote_readline { echo \"$1\"; };")
   "*Wrapper used to call Bash's `complete' to generate completions.
 You know what you are doing.")
 
-(defun bacom-initialize-complete-wrapper (process)
+(defun bashcomp-initialize-complete-wrapper (process)
   "Initialize the completion wrapper in process PROCESS."
-  (bacom-call-with-temp-buffer
+  (bashcomp-call-with-temp-buffer
    (lambda (temp-buffer)
-     (bacom-send bacom-complete-wrapper process temp-buffer))))
+     (bashcomp-send bashcomp-complete-wrapper process temp-buffer))))
 
-(defun bacom-readin-completion-rules (process rules &rest commands)
+(defun bashcomp-readin-completion-rules (process rules &rest commands)
   "Read in completion rules from Bash process PROCESS into RULES, a hash table.
 If optional arguments COMMANDS are given, only fetch completion
 rules for those given commands."
-  (bacom-call-with-temp-buffer
+  (bashcomp-call-with-temp-buffer
    (lambda (temp-buffer)
-     (bacom-send
+     (bashcomp-send
       (concat "complete -p " (mapconcat #'identity commands " "))
       process
       temp-buffer)
-     (bacom-initialize-rules temp-buffer rules))))
+     (bashcomp-initialize-rules temp-buffer rules))))
 
-(defmacro bacom-call-with-temp-buffer (thunk)
+(defmacro bashcomp-call-with-temp-buffer (thunk)
   "Call THUNK with a freshly created temporary buffer as an argument.
 Like `with-temp-buffer' but does not change the current buffer."
   (let ((temp-buffer (make-symbol "temp-buffer")))
@@ -602,5 +602,5 @@ Like `with-temp-buffer' but does not change the current buffer."
          (and (buffer-name ,temp-buffer)
               (kill-buffer ,temp-buffer))))))
 
-(provide 'bacom)
-;;; bacom.el ends here
+(provide 'bashcomp)
+;;; bashcomp.el ends here
