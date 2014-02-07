@@ -670,7 +670,7 @@
   "bashcomp execute one completion"
   (should (equal (bashcomp-tests-with-shell
                   (let ((pos (point))
-                        (completion-at-point-functions '(bashcomp-dynamic-complete)))
+                        (completion-at-point-functions '(bashcomp-completion-at-point)))
                     (insert "__bash_complete_")
                     (completion-at-point)
                     (sit-for 1)
@@ -682,7 +682,7 @@
   "bashcomp execute wordbreak completion"
   (should (equal (bashcomp-tests-with-shell
                   (let ((pos (point))
-                        (completion-at-point-functions '(bashcomp-dynamic-complete)))
+                        (completion-at-point-functions '(bashcomp-completion-at-point)))
                     (insert "export PATH=/sbin:/bi")
                     (completion-at-point)
                     (sit-for 1)
@@ -696,7 +696,7 @@
                   (comint-send-string (current-buffer) "complete -W 'abc aeiou' foo\n")
                   (sit-for 1)
                   (let ((pos (point))
-                        (completion-at-point-functions '(bashcomp-dynamic-complete)))
+                        (completion-at-point-functions '(bashcomp-completion-at-point)))
                     (insert "foo ab")
                     (completion-at-point)
                     (sit-for 1)
@@ -710,7 +710,7 @@
                   (comint-send-string (current-buffer) "complete -F _foo foo; _foo () { complete -W 'abc aeiou' foo; return 124; }\n")
                   (sit-for 1)
                   (let ((pos (point))
-                        (completion-at-point-functions '(bashcomp-dynamic-complete)))
+                        (completion-at-point-functions '(bashcomp-completion-at-point)))
                     (insert "foo ab")
                     (completion-at-point)
                     (sit-for 1)

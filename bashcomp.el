@@ -103,15 +103,9 @@ completion in colon-separated values.")
 ;;; Completion functions
 
 ;;;###autoload
-(defun bashcomp-dynamic-complete ()
-  "Complete word at cursor using Bash completion.
-This function is meant to be added into
-`shell-dynamic-complete-functions' or
-`shell-command-complete-functions'.  It uses `comint' to figure
-out what the current command is and calls
-`comint-dynamic-simple-complete' to do the completion.
-If a match was found, it is displayed as is usual for comint
-completion.  Return nil if no match was found."
+(defun bashcomp-completion-at-point ()
+  "Complete word at point using Bash's completion engine.
+This function is meant to be added into `completion-at-point-functions'."
   (let* ((process (get-buffer-process (current-buffer)))
          (start (comint-line-beginning-position))
          (pos (point))
@@ -148,9 +142,9 @@ completion.  Return nil if no match was found."
                               (goto-char (match-end 0))
                             (insert suffix)))))))
           ;; No standard completion found, try filename completion after a wordbreak
-          (bashcomp-dynamic-wordbreak-complete process current-token pos))))))
+          (bashcomp-wordbreak-completion-at-point process current-token pos))))))
 
-(defun bashcomp-dynamic-wordbreak-complete (process current-token pos)
+(defun bashcomp-wordbreak-completion-at-point (process current-token pos)
   (let* ((wordbreak-regexp (format "^%s" (mapconcat #'string bashcomp-wordbreaks "")))
          (token-after-wordbreak (save-excursion
                                   (skip-chars-backward wordbreak-regexp)
@@ -398,7 +392,7 @@ which sees."
   (let* ((cmd (if (functionp command) (funcall command stub) command))
          (completions (bashcomp-generate-completions-1 process cmd)))
     ;; TODO: consider using catch/throw (with catch in
-    ;; `bashcomp-dynamic-complete' e.g.) for restarts
+    ;; `bashcomp-completion-at-point' e.g.) for restarts
     (if (equal completions '("*bashcomp_restart*"))
         (progn
           ;; TODO: only reread completion rules for the corresponding program!!!
