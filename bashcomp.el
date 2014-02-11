@@ -218,6 +218,19 @@ This function is meant to be added into `completion-at-point-functions'."
   (bashcomp-process-tokens
    (bashcomp-tokenize start pos) pos))
 
+;; Emacs can perform "partial-completion" if specified in
+;; `completion-styles': it will complete e.g. "th-n" to
+;; "this-file-name.txt".  Bash does not support this kind of
+;; completion, meaning the word to be completed must be a prefix of
+;; the possible completions.  So we trick Bash here and instead of
+;; asking it to complete "th-n" (to which it would respond `nil') we
+;; ask it to complete "th".  Of course this will lead to false
+;; positives (like "that-other-directory") but Emacs' completion
+;; engine will filter them out later.  TODO: this filtering could also
+;; be done in the "predicate" property of completion table.
+;;
+;; We just have to be careful with directories and such (URLs!), since
+;; most Bash completion functions do not work recursively.
 (defun bashcomp-process-tokens (tokens pos)
   "Process a command line split into TOKENS that end at POS.
 This function takes a list of tokens built by `bashcomp-tokenize'
@@ -234,16 +247,25 @@ list with the members:
 (defun bashcomp-process-tokens-1 (tokens pos)
   (let* ((first-token (car tokens))
          (last-token (car (last tokens)))
-         (start (or (bashcomp-token-begin first-token) pos))
-         (end   (or (bashcomp-token-end last-token) pos))
          (words (mapcar 'bashcomp-token-string tokens))
-         (stub  (car (last words))))
+         (last-word (car (last words)))
+         (stub (bashcomp-optimize-stub last-word))
+         (start (bashcomp-token-begin first-token))
+         (end   (+ (bashcomp-token-begin last-token) (length stub))))
+    (setf (car (last words)) stub)
     (list
-     (buffer-substring-no-properties start pos)
-     (- pos start)
+     (buffer-substring-no-properties start end)
+     (- end start)
      (- (length words) 1)
      stub
      words)))
+
+(defun bashcomp-optimize-stub (word)
+  (let ((dir (or (file-name-directory word) ""))
+        (last (file-name-nondirectory word))
+        (rx (format "[%s*]" completion-pcm-word-delimiters)))
+    (concat dir
+            (substring last 0 (string-match rx last)))))
 
 (defun bashcomp-parse-current-command (tokens)
   "Extract from TOKENS the tokens forming the current command.
