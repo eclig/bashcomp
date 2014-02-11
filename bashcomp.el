@@ -112,11 +112,11 @@ This function is meant to be added into `completion-at-point-functions'."
          (tokens (bashcomp-tokenize start pos))
          (current-token (car (last tokens)))
          (open-quote (bashcomp-token-quote current-token))
-         (parsed (bashcomp-process-tokens tokens pos)))
+         (params (bashcomp-process-tokens tokens pos)))
     (unless bashcomp-initialized
       (bashcomp-initialize process)
       (setq bashcomp-initialized t))
-    (destructuring-bind (line point cword stub words) parsed
+    (destructuring-bind (line point cword stub words) params
       (let ((completions
              (bashcomp-generate-completions
               process
