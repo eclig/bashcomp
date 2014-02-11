@@ -1,4 +1,4 @@
-;;; bashcomp.el --- Bourne-Again Shell Completion
+;;; bashcomp.el --- Bourne-Again Shell Completion -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2013, 2014 Emílio Lopes
 ;; Copyright (C) 2009 Stephane Zermatten
