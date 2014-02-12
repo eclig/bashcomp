@@ -269,12 +269,10 @@ list with the members:
  stub - the portion before point of the string to be completed (string)
  words - line split into words, unescaped (list of strings)
 "
-  (bashcomp-process-tokens-1 (bashcomp-parse-current-command tokens) pos))
-
-(defun bashcomp-process-tokens-1 (tokens pos)
-  (let* ((first-token (car tokens))
-         (last-token (car (last tokens)))
-         (words (mapcar 'bashcomp-token-string tokens))
+  (let* ((this-cmd (bashcomp-extract-current-command tokens))
+         (first-token (car this-cmd))
+         (last-token (car (last this-cmd)))
+         (words (mapcar 'bashcomp-token-string this-cmd))
          (last-word (car (last words)))
          (stub (bashcomp-optimize-stub last-word))
          (start (bashcomp-token-begin first-token))
@@ -294,7 +292,7 @@ list with the members:
     (concat dir
             (substring last 0 (string-match rx last)))))
 
-(defun bashcomp-parse-current-command (tokens)
+(defun bashcomp-extract-current-command (tokens)
   "Extract from TOKENS the tokens forming the current command.
 This function takes a list of TOKENS created by
 `bashcomp-tokenize' for the current buffer and select the
