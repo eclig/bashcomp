@@ -138,26 +138,17 @@ This function is meant to be added into `completion-at-point-functions'."
     
     (list beg
           end
-          (lambda (string pred action)
-            (if (or (eq (car-safe action) 'boundaries) (eq action 'metadata))
-                ;; `fun' is not supposed to return another function but a plain old
-                ;; completion table, whose boundaries are always trivial.
-                nil
-              (complete-with-action action (bashcomp-get-completions open-quote params string) string pred)))
-          :exit-function
-          (lambda (string status)
-            (when (eq status 'finished)
-              (unless (memq (char-before) (append '(?/ ?\s) bashcomp-wordbreaks))
-                (let ((suffix
-                       (if (file-directory-p (comint-directory (shell-unquote-argument string)))
-                           "/"
-                         " ")))
-                  (if (looking-at suffix)
-                      (goto-char (match-end 0))
-                    (insert suffix)))))))
+          (bashcomp-generate-completion-table open-quote params)
+          :exit-function #'bashcomp-add-suffix)
     ;; No standard completion found, try filename completion after a wordbreak
     ;; (bashcomp-wordbreak-completion-at-point process current-token pos)
     ))
+
+(defun bashcomp-generate-completion-table (open-quote params)
+  (lambda (string pred action)
+    (if (or (eq (car-safe action) 'boundaries) (eq action 'metadata))
+        nil
+      (complete-with-action action (bashcomp-get-completions open-quote params string) string pred))))
 
 (defun bashcomp-get-completions (open-quote params ignored)
   (destructuring-bind (line point cword stub words) params
@@ -172,6 +163,17 @@ This function is meant to be added into `completion-at-point-functions'."
                (lambda (stub)
                  (bashcomp-generate-line line point words cword stub))
                stub)))))
+
+(defun bashcomp-add-suffix (string status)
+  (when (eq status 'finished)
+    (unless (memq (char-before) (append '(?/ ?\s) bashcomp-wordbreaks))
+      (let ((suffix
+             (if (file-directory-p (comint-directory (shell-unquote-argument string)))
+                 "/"
+               " ")))
+        (if (looking-at suffix)
+            (goto-char (match-end 0))
+          (insert suffix))))))
 
 (defun bashcomp-wordbreak-completion-at-point (process current-token pos)
   (let* ((wordbreak-regexp (format "^%s" (mapconcat #'string bashcomp-wordbreaks "")))
