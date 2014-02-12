@@ -665,8 +665,7 @@
                      (bashcomp-generate-completions
                       process 
                       (bashcomp-generate-line "hel" 4 '("hel") 0 "hel")
-                      "hel"
-                      nil))))))
+                      "hel"))))))
 
 (ert-deftest bashcomp-test-execute-one-completion ()
   :tags '(bashcomp-integration)

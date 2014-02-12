@@ -102,47 +102,76 @@ completion in colon-separated values.")
 
 ;;; Completion functions
 
+;; Stefan Monnier
+;;
+;; http://lists.gnu.org/archive/html/emacs-devel/2012-03/msg00265.html
+;; Then you should probably get your completions from the completion-table,
+;; rather than from completion-at-point-functions.
+;; IOW your completion-at-point-functions should return (without contacting
+;; any process, other than maybe checking whether a process exists)
+;; a completion table that's a function, e.g. built with
+;; completion-table-dynamic, or using complete-with-action and it's *that*
+;; function which contacts the process.
+;;
+;; http://lists.gnu.org/archive/html/emacs-devel/2012-03/msg00270.html
+;; As mentioned, completion-point-functions should not work hard: it should
+;; just return the boundaries of what it would consider as "the text to
+;; complete if we were to complete it", and what code to use to get the
+;; completion candidates (again, in case we do decide to perform
+;; completion).
+
+
 ;;;###autoload
 (defun bashcomp-completion-at-point ()
   "Complete word at point using Bash's completion engine.
 This function is meant to be added into `completion-at-point-functions'."
-  (let* ((process (get-buffer-process (current-buffer)))
-         (start (comint-line-beginning-position))
+  (let* ((start (comint-line-beginning-position))
          (pos (point))
          (tokens (bashcomp-tokenize start pos))
          (current-token (car (last tokens)))
          (open-quote (bashcomp-token-quote current-token))
-         (params (bashcomp-process-tokens tokens pos)))
-    (unless bashcomp-initialized
-      (bashcomp-initialize process)
-      (setq bashcomp-initialized t))
-    (destructuring-bind (line point cword stub words) params
-      (let ((completions
-             (bashcomp-generate-completions
-              process
-              (lambda (stub)
-                (bashcomp-generate-line line point words cword stub))
-              stub
-              open-quote)))
-        (if completions
-            (list (if open-quote
-                      (1+ (bashcomp-token-begin current-token))
-                    (bashcomp-token-begin current-token))
-                  (bashcomp-token-end current-token)
-                  completions
-                  :exit-function
-                  (lambda (string status)
-                    (when (eq status 'finished)
-                      (unless (memq (char-before) (append '(?/ ?\s) bashcomp-wordbreaks))
-                        (let ((suffix
-                               (if (file-directory-p (comint-directory (shell-unquote-argument string)))
-                                   "/"
-                                 " ")))
-                          (if (looking-at suffix)
-                              (goto-char (match-end 0))
-                            (insert suffix)))))))
-          ;; No standard completion found, try filename completion after a wordbreak
-          (bashcomp-wordbreak-completion-at-point process current-token pos))))))
+         (params (bashcomp-process-tokens tokens pos))
+         (beg (if open-quote
+                  (1+ (bashcomp-token-begin current-token))
+                (bashcomp-token-begin current-token)))
+         (end (bashcomp-token-end current-token)))
+    
+    (list beg
+          end
+          (lambda (string pred action)
+            (if (or (eq (car-safe action) 'boundaries) (eq action 'metadata))
+                ;; `fun' is not supposed to return another function but a plain old
+                ;; completion table, whose boundaries are always trivial.
+                nil
+              (complete-with-action action (bashcomp-get-completions open-quote params string) string pred)))
+          :exit-function
+          (lambda (string status)
+            (when (eq status 'finished)
+              (unless (memq (char-before) (append '(?/ ?\s) bashcomp-wordbreaks))
+                (let ((suffix
+                       (if (file-directory-p (comint-directory (shell-unquote-argument string)))
+                           "/"
+                         " ")))
+                  (if (looking-at suffix)
+                      (goto-char (match-end 0))
+                    (insert suffix)))))))
+    ;; No standard completion found, try filename completion after a wordbreak
+    ;; (bashcomp-wordbreak-completion-at-point process current-token pos)
+    ))
+
+(defun bashcomp-get-completions (open-quote params ignored)
+  (destructuring-bind (line point cword stub words) params
+    (let ((process (get-buffer-process (current-buffer))))
+      (unless bashcomp-initialized
+        (bashcomp-initialize process)
+        (setq bashcomp-initialized t))
+      (mapcar (lambda (str)
+                (bashcomp-escape-candidate str open-quote))
+              (bashcomp-generate-completions
+               process
+               (lambda (stub)
+                 (bashcomp-generate-line line point words cword stub))
+               stub)))))
 
 (defun bashcomp-wordbreak-completion-at-point (process current-token pos)
   (let* ((wordbreak-regexp (format "^%s" (mapconcat #'string bashcomp-wordbreaks "")))
@@ -150,11 +179,9 @@ This function is meant to be added into `completion-at-point-functions'."
                                   (skip-chars-backward wordbreak-regexp)
                                   (bashcomp-get-token pos)))
          (stub (bashcomp-token-string token-after-wordbreak)))
-    ;; TODO: Warning: reference to free variable `open-quote'
     (let ((completions (bashcomp-generate-completions process
-                                                   (bashcomp-compgen -f -- ,stub)
-                                                   stub
-                                                   open-quote)))
+                                                      (bashcomp-compgen -f -- ,stub)
+                                                      stub)))
       (when completions
         (list (bashcomp-token-begin token-after-wordbreak)
               (save-excursion
@@ -402,15 +429,13 @@ QUOTE should be nil, ?' or ?\"."
                       " ")
            " 2>/dev/null"))
 
-(defun bashcomp-generate-completions (process command stub open-quote)
+(defun bashcomp-generate-completions (process command stub)
   "Run compgen command COMMAND in process PROCESS.
 COMMAND can be a string or a function: a string is used as is; a
 function should accept one argument `stub' and return the
 completion command to be called to complete it.  This allows for
 recalculating the completion command when dynamically loaded
-completion rules are being used.
-Each completion candidate is then passed to `bashcomp-escape-candidate',
-which sees."
+completion rules are being used."
   (let* ((cmd (if (functionp command) (funcall command stub) command))
          (completions (bashcomp-generate-completions-1 process cmd)))
     ;; TODO: consider using catch/throw (with catch in
@@ -419,10 +444,8 @@ which sees."
         (progn
           ;; TODO: only reread completion rules for the corresponding program!!!
           (bashcomp-readin-completion-rules process bashcomp-rules)
-          (bashcomp-generate-completions process command stub open-quote))
-      (mapcar (lambda (str)
-                (bashcomp-escape-candidate str open-quote))
-              completions))))
+          (bashcomp-generate-completions process command stub))
+      completions)))
 
 (defun bashcomp-generate-completions-1 (process command)
   (bashcomp-call-with-temp-buffer
