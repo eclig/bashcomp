@@ -278,7 +278,7 @@ list with the members:
          (last-token (car (last this-cmd)))
          (words (mapcar 'bashcomp-token-string this-cmd))
          (last-word (car (last words)))
-         (stub (bashcomp-optimize-stub last-word))
+         (stub (bashcomp-generalize-stub last-word))
          (start (bashcomp-token-begin first-token))
          (end   (+ (bashcomp-token-begin last-token) (length stub))))
     (setf (car (last words)) stub)
@@ -289,7 +289,7 @@ list with the members:
      stub
      words)))
 
-(defun bashcomp-optimize-stub (word)
+(defun bashcomp-generalize-stub (word)
   (let ((dir (or (file-name-directory word) ""))
         (last (file-name-nondirectory word))
         (rx (format "[%s*]" completion-pcm-word-delimiters)))
