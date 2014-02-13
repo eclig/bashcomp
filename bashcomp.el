@@ -145,13 +145,12 @@ This function is meant to be added into `completion-at-point-functions'."
     ))
 
 (defun bashcomp-generate-completion-table-fn (open-quote params)
-  (let ((completions 'not-yet))
-    (lambda (string pred action)
-      (if (or (eq (car-safe action) 'boundaries) (eq action 'metadata))
-          nil
-        (unless (listp completions)
-          (setq completions (bashcomp-get-completions open-quote params)))
-        (complete-with-action action completions string pred)))))
+  (let (completions)
+    (setq completions
+          (lazy-completion-table
+           completions
+           (lambda ()
+             (bashcomp-get-completions open-quote params))))))
 
 (defun bashcomp-get-completions (open-quote params)
   (destructuring-bind (line point cword stub words) params
