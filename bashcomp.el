@@ -138,19 +138,22 @@ This function is meant to be added into `completion-at-point-functions'."
     
     (list beg
           end
-          (bashcomp-generate-completion-table open-quote params)
+          (bashcomp-generate-completion-table-fn open-quote params)
           :exit-function #'bashcomp-add-suffix)
     ;; No standard completion found, try filename completion after a wordbreak
     ;; (bashcomp-wordbreak-completion-at-point process current-token pos)
     ))
 
-(defun bashcomp-generate-completion-table (open-quote params)
-  (lambda (string pred action)
-    (if (or (eq (car-safe action) 'boundaries) (eq action 'metadata))
-        nil
-      (complete-with-action action (bashcomp-get-completions open-quote params string) string pred))))
+(defun bashcomp-generate-completion-table-fn (open-quote params)
+  (let ((completions 'not-yet))
+    (lambda (string pred action)
+      (if (or (eq (car-safe action) 'boundaries) (eq action 'metadata))
+          nil
+        (unless (listp completions)
+          (setq completions (bashcomp-get-completions open-quote params)))
+        (complete-with-action action completions string pred)))))
 
-(defun bashcomp-get-completions (open-quote params ignored)
+(defun bashcomp-get-completions (open-quote params)
   (destructuring-bind (line point cword stub words) params
     (let ((process (get-buffer-process (current-buffer))))
       (unless bashcomp-initialized
