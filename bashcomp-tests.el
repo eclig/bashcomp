@@ -34,10 +34,20 @@
 
 (require 'ert)
 (require 'bashcomp)
-(require 'sz-testutils)
 
 (eval-when-compile
   '(require cl-macs))
+
+(defmacro bashcomp-tests-with-buffer (contents &rest body)
+  "Create a temporary buffer with CONTENTS and execute BODY.
+The first instance of the \"-!-\" will be removed and the point positioned there. "
+  `(with-temp-buffer
+     (insert ,contents)
+     (goto-char (point-min))
+     (if (search-forward "-!-" nil t)
+         (replace-match "")
+       (goto-char (point-max)))
+     (progn ,@body)))
 
 ;; used in the tests bellow.
 (defun bashcomp-tests-parse-line (start pos)
@@ -48,8 +58,8 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize simple"
   (should (equal
-           (sz-testutils-with-buffer
-            '("a hello world b c")
+           (bashcomp-tests-with-buffer
+            "a hello world b c"
             (mapcar 'bashcomp-token-string
                     (bashcomp-tokenize 1 (line-end-position))))
            '("a" "hello" "world" "b" "c"))))
@@ -58,8 +68,8 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize simple extra spaces"
   (should (equal
-           (sz-testutils-with-buffer
-            '("  a  hello \n world \t b \r c  ")
+           (bashcomp-tests-with-buffer
+            "  a  hello \n world \t b \r c  "
             (mapcar 'bashcomp-token-string
                     (bashcomp-tokenize 1 (line-end-position 2))))
            '("a" "hello" "world" "b" "c" ""))))
@@ -68,8 +78,8 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize escaped char"
   (should (equal
-           (sz-testutils-with-buffer
-            '("a hello\\-world b c")
+           (bashcomp-tests-with-buffer
+            "a hello\\-world b c"
             (mapcar 'bashcomp-token-string
                     (bashcomp-tokenize 1 (line-end-position))))
            '("a" "hello-world" "b" "c"))))
@@ -78,8 +88,8 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize escaped space"
   (should (equal
-           (sz-testutils-with-buffer
-            '("a hello\\ world b c")
+           (bashcomp-tests-with-buffer
+            "a hello\\ world b c"
             (mapcar 'bashcomp-token-string
                     (bashcomp-tokenize 1 (line-end-position))))
            '("a" "hello world" "b" "c"))))
@@ -88,8 +98,8 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize escaped #"
   (should (equal
-           (sz-testutils-with-buffer
-            '("a hello \\#world\\# b")
+           (bashcomp-tests-with-buffer
+            "a hello \\#world\\# b"
             (mapcar 'bashcomp-token-string
                     (bashcomp-tokenize 1 (line-end-position))))
            '("a" "hello" "#world#" "b"))))
@@ -98,8 +108,8 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize double quotes"
   (should (equal
-           (sz-testutils-with-buffer
-            '("a \"hello world\" b c")
+           (bashcomp-tests-with-buffer
+            "a \"hello world\" b c"
             (mapcar 'bashcomp-token-string
                     (bashcomp-tokenize 1 (line-end-position))))
            '("a" "hello world" "b" "c"))))
@@ -108,8 +118,8 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize double quotes escaped"
   (should (equal
-           (sz-testutils-with-buffer
-            '("a \"-\\\"hello world\\\"-\" b c")
+           (bashcomp-tests-with-buffer
+            "a \"-\\\"hello world\\\"-\" b c"
             (mapcar 'bashcomp-token-string
                     (bashcomp-tokenize 1 (line-end-position))))
            '("a" "-\"hello world\"-" "b" "c"))))
@@ -118,8 +128,8 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize single quotes"
   (should (equal
-           (sz-testutils-with-buffer
-            '("a \"hello world\" b c")
+           (bashcomp-tests-with-buffer
+            "a \"hello world\" b c"
             (mapcar 'bashcomp-token-string
                     (bashcomp-tokenize 1 (line-end-position))))
            '("a" "hello world" "b" "c"))))
@@ -128,8 +138,8 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize single quotes escaped"
   (should (equal
-           (sz-testutils-with-buffer
-            '("a '-\\'hello world\\'-' b c")
+           (bashcomp-tests-with-buffer
+            "a '-\\'hello world\\'-' b c"
             (mapcar 'bashcomp-token-string
                     (bashcomp-tokenize 1 (line-end-position))))
            '("a" "-\\hello" "world'- b c"))))
@@ -138,10 +148,8 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize with a single quote open"
   (should (string=
-           (sz-testutils-with-buffer
-            '("hello 'world")
-            ;; 123456789
-            (goto-char 7)
+           (bashcomp-tests-with-buffer
+            "hello -!-'world"
             (bashcomp-token-string
              (bashcomp-get-token (line-end-position))))
            "world")))
@@ -150,10 +158,8 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize with a single quote open limited"
   (should (string=
-           (sz-testutils-with-buffer
-            '("hello 'world")
-            ;; 123456789
-            (goto-char 7)
+           (bashcomp-tests-with-buffer
+            "hello -!-'world"
             (bashcomp-token-string
              (bashcomp-get-token 10)))
            "wo")))
@@ -162,8 +168,8 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize complex quote mix"
   (should (equal
-           (sz-testutils-with-buffer
-            '("a hel\"lo w\"o'rld b'c d")
+           (bashcomp-tests-with-buffer
+            "a hel\"lo w\"o'rld b'c d"
             (mapcar 'bashcomp-token-string
                     (bashcomp-tokenize 1 (line-end-position))))
            '("a" "hello world bc" "d"))))
@@ -172,7 +178,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize unescaped semicolon"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             "to infinity;and\\ beyond"
             (mapcar 'bashcomp-token-string
                     (bashcomp-tokenize 1 (line-end-position))))
@@ -182,7 +188,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize unescaped &&"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             "to infinity&&and\\ beyond"
             (mapcar 'bashcomp-token-string
                     (bashcomp-tokenize 1 (line-end-position))))
@@ -192,7 +198,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize unescaped ||"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             "to infinity||and\\ beyond"
             (mapcar 'bashcomp-token-string
                     (bashcomp-tokenize 1 (line-end-position))))
@@ -202,7 +208,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-tokenize quoted ;&|"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             "to \"infinity;&|and\" beyond"
             (mapcar 'bashcomp-token-string
                     (bashcomp-tokenize 1 (line-end-position))))
@@ -212,7 +218,7 @@
   :tags '(bashcomp-unit)
   "The empty line should lead to a single empty token."
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             ""
             (bashcomp-tests-parse-line 1 (line-end-position)))
            '("" 0 0 "" ("")))))
@@ -221,7 +227,7 @@
   :tags '(bashcomp-unit)
   "The trailing space should lead to a new (empty) token at the end of the line."
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             "cd "
             (bashcomp-tests-parse-line 1 (line-end-position)))
            '("cd " 3 1 "" ("cd" "")))))
@@ -230,7 +236,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line cursor at end of word"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             "a hello world"
             (bashcomp-tests-parse-line 1 (line-end-position)))
            '("a hello world" 13 2 "world" ("a" "hello" "world")))))
@@ -239,7 +245,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line cursor in the middle of a word"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             "a hello wo"
             (bashcomp-tests-parse-line 1 (line-end-position)))
            '("a hello wo" 10 2 "wo" ("a" "hello" "wo")))))
@@ -248,7 +254,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line cursor at the beginning"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             " "
             (bashcomp-tests-parse-line 1 (line-end-position)))
            '("" 0 0 "" ("")))))
@@ -257,7 +263,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line cursor in the middle"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             "a hello "
             (bashcomp-tests-parse-line 1 (line-end-position)))
            '("a hello " 8 2 "" ("a" "hello" "")))))
@@ -266,7 +272,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line cursor at end"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             "a hello world b c"
             (bashcomp-tests-parse-line 1 (line-end-position)))
            '("a hello world b c" 17 4 "c" ("a" "hello" "world" "b" "c")))))
@@ -275,7 +281,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line complex multi-command line"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             "cd /var/tmp ; ZORG=t make "
             (bashcomp-tests-parse-line 1 (line-end-position)))
            '("make " 5 1 "" ("make" "")))))
@@ -284,7 +290,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line pipe"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             "ls /var/tmp | sort "
             (bashcomp-tests-parse-line 1 (line-end-position)))
            '("sort " 5 1 "" ("sort" "")))))
@@ -293,7 +299,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line escaped semicolon"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             "find -name '*.txt' -exec echo {} ';' -"
             (bashcomp-tests-parse-line 1 (line-end-position)))
            '("find -name '*.txt' -exec echo {} ';' " 37 7 ""
@@ -303,7 +309,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line at var assignment"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             "cd /var/tmp ; A=f ZORG=t"
             (bashcomp-tests-parse-line 1 (line-end-position)))
            '("ZORG=t" 6 0 "ZORG=t" ("ZORG=t")))))
@@ -312,7 +318,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line cursor after end"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             "a hello world b c "
             (bashcomp-tests-parse-line 1 (line-end-position)))
            '("a hello world b c " 18 5 ""
@@ -325,7 +331,7 @@
 ;;   :tags '(bashcomp-unit)
 ;;   "bashcomp-tests-parse-line with escaped quote"
 ;;   (should (equal
-;;            (sz-testutils-with-buffer
+;;            (bashcomp-tests-with-buffer
 ;;             "cd /vcr/shows/Dexter\\'s"
 ;;             (bashcomp-tests-parse-line 1 (line-end-position)))
 ;;            '("cd /vcr/shows/Dexter\\'s" 23 1 "/vcr/shows/Dexter's"
@@ -372,7 +378,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-initialize-rules"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             (concat "\n"
                     "complete -F _cdargs_aliases cdb\n"
                     "complete -F complete_projects project\n"
@@ -523,7 +529,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-extract-candidates"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             (format "%shello world\n%shello \n\n" bashcomp-candidates-prefix bashcomp-candidates-prefix)
             (bashcomp-extract-candidates (current-buffer)))
            '("hello world" "hello"))))
@@ -532,7 +538,7 @@
   :tags '(bashcomp-unit)
   "bashcomp-extract-candidates with spurious output"
   (should (equal
-           (sz-testutils-with-buffer
+           (bashcomp-tests-with-buffer
             (format "%shello world\nspurious \n\n" bashcomp-candidates-prefix)
             (bashcomp-extract-candidates (current-buffer)))
            '("hello world"))))
@@ -695,16 +701,16 @@
   :tags '(bashcomp-unit)
   "Simple tests for `completion-in-region'."
   (should (string=
-           (sz-testutils-with-buffer
-            '("f" cursor "b")
+           (bashcomp-tests-with-buffer
+            "f-!-b"
             (let ((completion-styles '(basic)))
               (completion-in-region (point-min) (point-max) '("foo-bar" "fox" "fun")))
             (buffer-string))
            "foo-bar"))
 
   (should (string=
-           (sz-testutils-with-buffer
-            '("f" cursor "n")
+           (bashcomp-tests-with-buffer
+            "f-!-n"
             (let ((completion-styles '(basic)))
               (completion-in-region (point-min) (point-max) '("foo-bar" "fox" "fun")))
             (buffer-string))
@@ -712,16 +718,16 @@
 
 
   (should (string=
-           (sz-testutils-with-buffer
-            '("f-" cursor "b")
+           (bashcomp-tests-with-buffer
+            "f--!-b"
             (let ((completion-styles '(basic)))
               (completion-in-region (point-min) (point-max) '("foo-bar" "fox" "fun")))
             (buffer-string))
            "f-b"))
 
   (should (string=
-           (sz-testutils-with-buffer
-            '("f-" cursor "b")
+           (bashcomp-tests-with-buffer
+            "f--!-b"
             (let ((completion-styles '(partial-completion)))
               (completion-in-region (point-min) (point-max) '("foo-bar" "fox" "fun")))
             (buffer-string))
