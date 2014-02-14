@@ -25,8 +25,8 @@
 ;; This file defines regression tests for the "bashcomp" package.
 ;; Eval these forms to run the tests:
 ;;
-;;     (ert '(tag bashcomp))
-;;     (ert '(tag bashcomp-integration))
+;;     (ert '(tag bashcomp-unit))
+;;     (ert '(tag bashcomp-system))
 ;;
 ;; See Info(ert) for more information.
 
@@ -45,7 +45,7 @@
    (bashcomp-tokenize start pos) pos))
 
 (ert-deftest bashcomp-test-tokenize-simple ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize simple"
   (should (equal
            (sz-testutils-with-buffer
@@ -55,7 +55,7 @@
            '("a" "hello" "world" "b" "c"))))
 
 (ert-deftest bashcomp-test-tokenize-simple-extra-spaces ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize simple extra spaces"
   (should (equal
            (sz-testutils-with-buffer
@@ -65,7 +65,7 @@
            '("a" "hello" "world" "b" "c" ""))))
 
 (ert-deftest bashcomp-test-tokenize-escaped-char ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize escaped char"
   (should (equal
            (sz-testutils-with-buffer
@@ -75,7 +75,7 @@
            '("a" "hello-world" "b" "c"))))
 
 (ert-deftest bashcomp-test-tokenize-escaped-space ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize escaped space"
   (should (equal
            (sz-testutils-with-buffer
@@ -85,7 +85,7 @@
            '("a" "hello world" "b" "c"))))
 
 (ert-deftest bashcomp-test-tokenize-escaped-hash ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize escaped #"
   (should (equal
            (sz-testutils-with-buffer
@@ -95,7 +95,7 @@
            '("a" "hello" "#world#" "b"))))
 
 (ert-deftest bashcomp-test-tokenize-double-quotes ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize double quotes"
   (should (equal
            (sz-testutils-with-buffer
@@ -105,7 +105,7 @@
            '("a" "hello world" "b" "c"))))
 
 (ert-deftest bashcomp-test-tokenize-double-quotes-escaped ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize double quotes escaped"
   (should (equal
            (sz-testutils-with-buffer
@@ -115,7 +115,7 @@
            '("a" "-\"hello world\"-" "b" "c"))))
 
 (ert-deftest bashcomp-test-tokenize-single-quotes ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize single quotes"
   (should (equal
            (sz-testutils-with-buffer
@@ -125,7 +125,7 @@
            '("a" "hello world" "b" "c"))))
 
 (ert-deftest bashcomp-test-tokenize-single-quotes-escaped ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize single quotes escaped"
   (should (equal
            (sz-testutils-with-buffer
@@ -135,7 +135,7 @@
            '("a" "-\\hello" "world'- b c"))))
 
 (ert-deftest bashcomp-test-get-token-open-single-quote ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize with a single quote open"
   (should (string=
            (sz-testutils-with-buffer
@@ -147,7 +147,7 @@
            "world")))
 
 (ert-deftest bashcomp-test-tokenize-open-single-quote-limited ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize with a single quote open limited"
   (should (string=
            (sz-testutils-with-buffer
@@ -159,7 +159,7 @@
            "wo")))
 
 (ert-deftest bashcomp-test-tokenize-complex-quote-mix ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize complex quote mix"
   (should (equal
            (sz-testutils-with-buffer
@@ -169,7 +169,7 @@
            '("a" "hello world bc" "d"))))
 
 (ert-deftest bashcomp-test-tokenize-unescaped-semicolon ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize unescaped semicolon"
   (should (equal
            (sz-testutils-with-buffer
@@ -179,7 +179,7 @@
            '("to" "infinity" ";" "and beyond"))))
 
 (ert-deftest bashcomp-test-tokenize-unescaped-and ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize unescaped &&"
   (should (equal
            (sz-testutils-with-buffer
@@ -189,7 +189,7 @@
            '("to" "infinity" "&&" "and beyond"))))
 
 (ert-deftest bashcomp-test-tokenize-unescaped-or ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize unescaped ||"
   (should (equal
            (sz-testutils-with-buffer
@@ -199,7 +199,7 @@
            '("to" "infinity" "||" "and beyond"))))
 
 (ert-deftest bashcomp-test-tokenize-quoted-separators ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tokenize quoted ;&|"
   (should (equal
            (sz-testutils-with-buffer
@@ -209,7 +209,7 @@
            '("to" "infinity;&|and" "beyond"))))
 
 (ert-deftest bashcomp-test-parse-line-empty-line ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "The empty line should lead to a single empty token."
   (should (equal
            (sz-testutils-with-buffer
@@ -218,7 +218,7 @@
            '("" 0 0 "" ("")))))
 
 (ert-deftest bashcomp-test-parse-line-trailing-space ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "The trailing space should lead to a new (empty) token at the end of the line."
   (should (equal
            (sz-testutils-with-buffer
@@ -227,7 +227,7 @@
            '("cd " 3 1 "" ("cd" "")))))
 
 (ert-deftest bashcomp-test-parse-line-cursor-at-end-of-word ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line cursor at end of word"
   (should (equal
            (sz-testutils-with-buffer
@@ -236,7 +236,7 @@
            '("a hello world" 13 2 "world" ("a" "hello" "world")))))
 
 (ert-deftest bashcomp-test-parse-line-cursor-in-the-middle-of-a-word ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line cursor in the middle of a word"
   (should (equal
            (sz-testutils-with-buffer
@@ -245,7 +245,7 @@
            '("a hello wo" 10 2 "wo" ("a" "hello" "wo")))))
 
 (ert-deftest bashcomp-test-parse-line-cursor-at-the-beginning ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line cursor at the beginning"
   (should (equal
            (sz-testutils-with-buffer
@@ -254,7 +254,7 @@
            '("" 0 0 "" ("")))))
 
 (ert-deftest bashcomp-test-parse-line-cursor-in-the-middle ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line cursor in the middle"
   (should (equal
            (sz-testutils-with-buffer
@@ -263,7 +263,7 @@
            '("a hello " 8 2 "" ("a" "hello" "")))))
 
 (ert-deftest bashcomp-test-parse-line-cursor-at-end ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line cursor at end"
   (should (equal
            (sz-testutils-with-buffer
@@ -272,7 +272,7 @@
            '("a hello world b c" 17 4 "c" ("a" "hello" "world" "b" "c")))))
 
 (ert-deftest bashcomp-test-parse-line-complex-multi-command-line ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line complex multi-command line"
   (should (equal
            (sz-testutils-with-buffer
@@ -281,7 +281,7 @@
            '("make " 5 1 "" ("make" "")))))
 
 (ert-deftest bashcomp-test-parse-line-pipe ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line pipe"
   (should (equal
            (sz-testutils-with-buffer
@@ -290,7 +290,7 @@
            '("sort " 5 1 "" ("sort" "")))))
 
 (ert-deftest bashcomp-test-parse-line-escaped-semicolon ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line escaped semicolon"
   (should (equal
            (sz-testutils-with-buffer
@@ -300,7 +300,7 @@
              ("find" "-name" "*.txt" "-exec" "echo" "{}" ";" "")))))
 
 (ert-deftest bashcomp-test-parse-line-at-var-assignment ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line at var assignment"
   (should (equal
            (sz-testutils-with-buffer
@@ -309,7 +309,7 @@
            '("ZORG=t" 6 0 "ZORG=t" ("ZORG=t")))))
 
 (ert-deftest bashcomp-test-parse-line-cursor-after-end ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-tests-parse-line cursor after end"
   (should (equal
            (sz-testutils-with-buffer
@@ -322,7 +322,7 @@
 ;; backslash to be a directory separator on those systems.
 ;;
 ;; (ert-deftest bashcomp-test-parse-line-with-escaped-quote ()
-;;   :tags '(bashcomp)
+;;   :tags '(bashcomp-unit)
 ;;   "bashcomp-tests-parse-line with escaped quote"
 ;;   (should (equal
 ;;            (sz-testutils-with-buffer
@@ -332,35 +332,35 @@
 ;;              ("cd" "/vcr/shows/Dexter's")))))
 
 (ert-deftest bashcomp-test-add-rule-garbage ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-add-rule garbage"
   (should (let ((rules (make-hash-table :test 'equal)))
             (bashcomp-add-rule (list "just" "some" "garbage") rules)
             (zerop (hash-table-count rules)))))
 
 (ert-deftest bashcomp-test-add-rule-empty ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-add-rule empty"
   (should (let ((rules (make-hash-table :test 'equal)))
             (bashcomp-add-rule nil rules)
             (zerop (hash-table-count rules)))))
 
 (ert-deftest bashcomp-test-add-rule-empty-string ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-add-rule empty string"
   (should (let ((rules (make-hash-table :test 'equal)))
             (bashcomp-add-rule (list "") rules)
             (zerop (hash-table-count rules)))))
 
 (ert-deftest bashcomp-test-add-rule-empty-complete ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-add-rule empty complete"
   (should (let ((rules (make-hash-table :test 'equal)))
             (bashcomp-add-rule (list "complete") rules)
             (zerop (hash-table-count rules)))))
 
 (ert-deftest bashcomp-test-add-rule-one-command ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-add-rule one command"
   (should (equal
            (let ((rules (make-hash-table :test 'equal)))
@@ -369,7 +369,7 @@
            '("-e" "-F" "_cdargs_aliases"))))
 
 (ert-deftest bashcomp-test-initialize-rules ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-initialize-rules"
   (should (equal
            (sz-testutils-with-buffer
@@ -392,28 +392,28 @@
              ("cb" "-F" "_cdargs_aliases")))))
 
 (ert-deftest bashcomp-test-quote-not-necessary ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-quote not necessary"
   (should (string=
            (bashcomp-quote "hello")
            "hello")))
 
 (ert-deftest bashcomp-test-quote-space ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-quote space"
   (should (string=
            (bashcomp-quote "hello world")
            "'hello world'")))
 
 (ert-deftest bashcomp-test-quote-quote ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-quote quote"
   (should (string=
            (bashcomp-quote "hell'o")
            "'hell'\\''o'")))
 
 (ert-deftest bashcomp-test-generate-line-no-custom-completion ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-generate-line no custom completion"
   (should (string=
            (let ((bashcomp-initialized t)
@@ -423,7 +423,7 @@
            (format "compgen -P '%s' -f -- worl 2>/dev/null" bashcomp-candidates-prefix))))
 
 (ert-deftest bashcomp-test-generate-line-custom-completion-no-function-or-command ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-generate-line custom completion no function or command"
   (should (string=
            (let ((bashcomp-initialized t)
@@ -434,7 +434,7 @@
            (format "compgen -P '%s' -A -G '*.txt' -- worl 2>/dev/null" bashcomp-candidates-prefix))))
 
 (ert-deftest bashcomp-test-bashcomp-specification ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-specification"
   (let ((bashcomp-initialized t)
         (bashcomp-rules (make-hash-table :test 'equal))
@@ -463,7 +463,7 @@
               '("-A" "-G" "*.txt"))))))
 
 (ert-deftest bashcomp-test-generate-line-custom-completion-function ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-generate-line custom completion function"
   (should (string=
            (let ((bashcomp-initialized t)
@@ -474,7 +474,7 @@
            (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl 2>/dev/null" bashcomp-candidates-prefix))))
 
 (ert-deftest bashcomp-test-generate-line-custom-completion-command ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-generate-line custom completion command"
   (should (string=
            (let ((bashcomp-initialized t)
@@ -485,7 +485,7 @@
            (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl 2>/dev/null" bashcomp-candidates-prefix))))
 
 (ert-deftest bashcomp-test-send ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-send"
   (should (string=
            (cl-letf ((bashcomp-initialized t)
@@ -520,7 +520,7 @@
            "line1\nline2\n")))
 
 (ert-deftest bashcomp-test-extract-candidates ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-extract-candidates"
   (should (equal
            (sz-testutils-with-buffer
@@ -529,7 +529,7 @@
            '("hello world" "hello"))))
 
 (ert-deftest bashcomp-test-extract-candidates-with-spurious-output ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-extract-candidates with spurious output"
   (should (equal
            (sz-testutils-with-buffer
@@ -538,14 +538,14 @@
            '("hello world"))))
 
 (ert-deftest bashcomp-test-nonsep ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-nonsep"
   (should (string= (bashcomp-nonsep nil) "^ \t\n\r;&|'\"\\\\#"))
   (should (string= (bashcomp-nonsep ?\') "^ \t\n\r'"))
   (should (string= (bashcomp-nonsep ?\") "^ \t\n\r\"\\\\")))
 
 (ert-deftest bashcomp-test-escape-candidate-no-quote ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-escape-candidate no quote"
   (should (string=
            (bashcomp-escape-candidate "He said: \"hello, 'you'\"" nil)
@@ -555,56 +555,56 @@
            "\\#hello\\#")))
 
 (ert-deftest bashcomp-test-escape-candidate-single-quote ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-escape-candidate single quote"
   (should (string=
            (bashcomp-escape-candidate "He said: \"hello, 'you'\"" 39)
            "He said: \"hello, '\\''you'\\''\"")))
 
 (ert-deftest bashcomp-test-escape-candidate-double-quote ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-escape-candidate double quote"
   (should (string=
            (bashcomp-escape-candidate "He said: \"hello, 'you'\"" 34)
            "He said: \\\"hello, 'you'\\\"")))
 
 (ert-deftest bashcomp-test-escape-candidate-no-quote-not-if-double-quoted ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-escape-candidate no quote not if double quoted"
   (should (string=
            (bashcomp-escape-candidate "\"hello, you" nil)
            "\"hello, you")))
 
 (ert-deftest bashcomp-test-escape-candidate-no-quote-not-if-single-quoted ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-escape-candidate no quote not if single quoted"
   (should (string=
            (bashcomp-escape-candidate "'hello, you" nil)
            "'hello, you")))
 
 (ert-deftest bashcomp-test-quote-allowed ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-quote allowed"
   (should (string=
            (bashcomp-quote "abc_ABC/1-2.3")
            "abc_ABC/1-2.3")))
 
 (ert-deftest bashcomp-test-quote-quoted ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-quote quoted"
   (should (string=
            (bashcomp-quote "a$b")
            "'a$b'")))
 
 (ert-deftest bashcomp-test-quote-quoted-single-quote ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-quote quoted single quote"
   (should (string=
            (bashcomp-quote "a'b")
            "'a'\\''b'")))
 
 (ert-deftest bashcomp-test-add-suffix-ends-with-slash ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-add-suffix ends with /"
   (should (string=
            (cl-letf (((symbol-function 'file-directory-p)
@@ -620,7 +620,7 @@
            "hello/")))
 
 (ert-deftest bashcomp-test-add-suffix-ends-with-space ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-add-suffix ends with space"
   (should (string=
            (cl-letf (((symbol-function 'file-directory-p)
@@ -636,7 +636,7 @@
            "hello ")))
 
 (ert-deftest bashcomp-test-add-suffix-ends-with-separator ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-add-suffix ends with separator"
   (should (string=
            (cl-letf (((symbol-function 'file-directory-p)
@@ -652,7 +652,7 @@
            "hello:")))
 
 (ert-deftest bashcomp-test-add-suffix-check-directory ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-add-suffix check directory"
   (should (string=
            (cl-letf (((symbol-function 'file-directory-p)
@@ -675,7 +675,7 @@
            "hello/")))
 
 (ert-deftest bashcomp-test-add-suffix-check-directory-expand-tilde ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "bashcomp-add-suffix check directory, expand tilde"
   (should (string=
            (cl-letf (((symbol-function 'file-directory-p)
@@ -692,7 +692,7 @@
            "y/")))
 
 (ert-deftest bashcomp-test-completion-in-region ()
-  :tags '(bashcomp)
+  :tags '(bashcomp-unit)
   "Simple tests for `completion-in-region'."
   (should (string=
            (sz-testutils-with-buffer
@@ -747,7 +747,7 @@
            (kill-buffer ,shell-buffer))))))
 
 (ert-deftest bashcomp-test-interaction ()
-  :tags '(bashcomp-integration)
+  :tags '(bashcomp-system)
   "bashcomp interaction"
   (should-not bashcomp-initialized)
   (should (hash-table-p bashcomp-rules))
@@ -761,7 +761,7 @@
                       "hel"))))))
 
 (ert-deftest bashcomp-test-execute-one-completion ()
-  :tags '(bashcomp-integration)
+  :tags '(bashcomp-system)
   "bashcomp execute one completion"
   (should (equal (bashcomp-tests-with-shell
                   (let ((pos (point))
@@ -773,7 +773,7 @@
                  "__bash_complete_wrapper ")))
 
 (ert-deftest bashcomp-test-execute-wordbreak-completion ()
-  :tags '(bashcomp-integration)
+  :tags '(bashcomp-system)
   "bashcomp execute wordbreak completion"
   :expected-result :failed
   (equal (bashcomp-tests-with-shell
@@ -786,7 +786,7 @@
          "export PATH=/sbin:/bin"))
 
 (ert-deftest bashcomp-test-completion-with-custom-rule ()
-  :tags '(bashcomp-integration)
+  :tags '(bashcomp-system)
   "bashcomp completion with custom rule"
   (should (equal (bashcomp-tests-with-shell
                   (comint-send-string (current-buffer) "complete -W 'abc aeiou' foo\n")
@@ -800,7 +800,7 @@
                  "foo abc ")))
 
 (ert-deftest bashcomp-test-completion-with-restart ()
-  :tags '(bashcomp-integration)
+  :tags '(bashcomp-system)
   "bashcomp completion with restart"
   (should (equal (bashcomp-tests-with-shell
                   (comint-send-string (current-buffer) "complete -F _foo foo; _foo () { complete -W 'abc aeiou' foo; return 124; }\n")
