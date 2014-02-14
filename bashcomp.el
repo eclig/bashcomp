@@ -102,24 +102,8 @@ completion in colon-separated values.")
 
 ;;; Completion functions
 
-;; Stefan Monnier
-;;
+;; Thank you, Stefan Monnier.
 ;; http://lists.gnu.org/archive/html/emacs-devel/2012-03/msg00265.html
-;; Then you should probably get your completions from the completion-table,
-;; rather than from completion-at-point-functions.
-;; IOW your completion-at-point-functions should return (without contacting
-;; any process, other than maybe checking whether a process exists)
-;; a completion table that's a function, e.g. built with
-;; completion-table-dynamic, or using complete-with-action and it's *that*
-;; function which contacts the process.
-;;
-;; http://lists.gnu.org/archive/html/emacs-devel/2012-03/msg00270.html
-;; As mentioned, completion-point-functions should not work hard: it should
-;; just return the boundaries of what it would consider as "the text to
-;; complete if we were to complete it", and what code to use to get the
-;; completion candidates (again, in case we do decide to perform
-;; completion).
-
 
 ;;;###autoload
 (defun bashcomp-completion-at-point ()
@@ -141,6 +125,39 @@ This function is meant to be added into `completion-at-point-functions'."
           :exit-function (lambda (string status)
                            (when (eq status 'finished)
                              (bashcomp-add-suffix string))))))
+
+;; Emacs performs "partial-completion" by splitting the term to be
+;; completed on `completion-pcm-word-delimiters' and then querying the
+;; corresponding completion functions/tables multiple times to
+;; complete and confirm those substrings.  For example, on trying to
+;; complete "t-n.txt" (given that "this-file-name.txt" exists in the
+;; current directory) Emacs would first ask to complete "t", which
+;; could return "this-".  Then Emacs asks if "this-n.txt" is an unique
+;; and exact match.  And so forth.  This approach does not work very
+;; well in conjunction with shell completion.  For one thing, asking
+;; the external shell process to do completion is expensive and doing
+;; this multiple times takes an unsatisfactorily long time.
+;; Furthermore, when completing "/foo/bar" as a directory it tries to
+;; first complete "" (the part to the left of the first
+;; word-delimiter) as an directory, which will probably fail, if the
+;; shell's working directory is not "/".
+;;
+;; To resolve the first problem we use a lazy completion table,
+;; causing the expensive completion function to be called only once
+;; per completion query.  Because the completion table is now
+;; "static", we have to do "partial-completion" ourselves.  Part of
+;; this is done in 'bashcomp-generalize-stub', please see also the
+;; comments there.
+;;
+;; As it stands now, we do not provide partial-completion on paths:
+;;
+;;     cd ~/m-d<TAB>
+;;
+;; expands to "cd ~/my-dir" but
+;;
+;;     cd ~/m-d/sub-d<TAB>
+;;
+;; says "no match".
 
 (defun bashcomp-generate-completion-table-fn (open-quote params)
   (let (completions)
@@ -241,19 +258,6 @@ This function is meant to be added into `completion-at-point-functions'."
       word
     (format "'%s'" (replace-regexp-in-string "'" "'\\''" word :literal t))))
 
-;; Emacs can perform "partial-completion" if specified in
-;; `completion-styles': it will complete e.g. "th-n" to
-;; "this-file-name.txt".  Bash does not support this kind of
-;; completion, meaning the word to be completed must be a prefix of
-;; the possible completions.  So we trick Bash here and instead of
-;; asking it to complete "th-n" (to which it would respond `nil') we
-;; ask it to complete "th".  Of course this will lead to false
-;; positives (like "that-other-directory") but Emacs' completion
-;; engine will filter them out later.  TODO: this filtering could also
-;; be done in the "predicate" property of completion table.
-;;
-;; We just have to be careful with directories and such (URLs!), since
-;; most Bash completion functions do not work recursively.
 (defun bashcomp-process-tokens (tokens pos)
   "Process a command line split into TOKENS that end at POS.
 This function takes a list of tokens built by `bashcomp-tokenize'
@@ -281,6 +285,19 @@ list with the members:
      stub
      words)))
 
+;; Emacs can perform "partial-completion" if specified in
+;; `completion-styles': it will complete e.g. "th-n" to
+;; "this-file-name.txt".  Bash does not support this kind of
+;; completion, meaning the word to be completed must be a prefix of
+;; the possible completions.  So we trick Bash here and instead of
+;; asking it to complete "th-n" (to which it would respond `nil') we
+;; ask it to complete "th".  Of course this will lead to false
+;; positives (like "that-other-directory") but Emacs' completion
+;; engine will filter them out later.  TODO: this filtering could also
+;; be done in the "predicate" property of completion table.
+;;
+;; We just have to be careful with directories and such (URLs!), since
+;; most Bash completion functions do not work recursively.
 (defun bashcomp-generalize-stub (word)
   (let ((dir (or (file-name-directory word) ""))
         (last (file-name-nondirectory word))
