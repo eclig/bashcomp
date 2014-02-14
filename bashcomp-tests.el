@@ -603,6 +603,94 @@
            (bashcomp-quote "a'b")
            "'a'\\''b'")))
 
+(ert-deftest bashcomp-test-add-suffix-ends-with-slash ()
+  :tags '(bashcomp)
+  "bashcomp-add-suffix ends with /"
+  (should (string=
+           (cl-letf (((symbol-function 'file-directory-p)
+                      (lambda (a)
+                        (error "unexpected")))
+                     ((symbol-function 'shell-unquote-argument)
+                      #'identity))
+             (let ((str "hello/"))
+               (with-temp-buffer
+                 (insert str)
+                 (bashcomp-add-suffix str)
+                 (buffer-string))))
+           "hello/")))
+
+(ert-deftest bashcomp-test-add-suffix-ends-with-space ()
+  :tags '(bashcomp)
+  "bashcomp-add-suffix ends with space"
+  (should (string=
+           (cl-letf (((symbol-function 'file-directory-p)
+                      (lambda (a)
+                        (error "unexpected")))
+                     ((symbol-function 'shell-unquote-argument)
+                      #'identity))
+             (let ((str "hello "))
+               (with-temp-buffer
+                 (insert str)
+                 (bashcomp-add-suffix str)
+                 (buffer-string))))
+           "hello ")))
+
+(ert-deftest bashcomp-test-add-suffix-ends-with-separator ()
+  :tags '(bashcomp)
+  "bashcomp-add-suffix ends with separator"
+  (should (string=
+           (cl-letf (((symbol-function 'file-directory-p)
+                      (lambda (a)
+                        (error "unexpected")))
+                     ((symbol-function 'shell-unquote-argument)
+                      #'identity))
+             (let ((str "hello:"))
+               (with-temp-buffer
+                 (insert str)
+                 (bashcomp-add-suffix str)
+                 (buffer-string))))
+           "hello:")))
+
+(ert-deftest bashcomp-test-add-suffix-check-directory ()
+  :tags '(bashcomp)
+  "bashcomp-add-suffix check directory"
+  (should (string=
+           (cl-letf (((symbol-function 'file-directory-p)
+                      (lambda (a)
+                        (string= a
+                                 (if (memq system-type '(windows-nt ms-dos))
+                                     "c:/tmp/hello"
+                                   "/tmp/hello"))))
+                     (default-directory
+                       (if (memq system-type '(windows-nt ms-dos))
+                           "c:/tmp"
+                         "/tmp"))
+                     ((symbol-function 'shell-unquote-argument)
+                      #'identity))
+             (let ((str "hello"))
+               (with-temp-buffer
+                 (insert str)
+                 (bashcomp-add-suffix str)
+                 (buffer-string))))
+           "hello/")))
+
+(ert-deftest bashcomp-test-add-suffix-check-directory-expand-tilde ()
+  :tags '(bashcomp)
+  "bashcomp-add-suffix check directory, expand tilde"
+  (should (string=
+           (cl-letf (((symbol-function 'file-directory-p)
+                      (lambda (a)
+                        (string= a (concat (expand-file-name "y" "~/x")))))
+                     (default-directory "~/x")
+                     ((symbol-function 'shell-unquote-argument)
+                      #'identity))
+             (let ((str "y"))
+               (with-temp-buffer
+                 (insert str)
+                 (bashcomp-add-suffix str)
+                 (buffer-string))))
+           "y/")))
+
 (ert-deftest bashcomp-test-completion-in-region ()
   :tags '(bashcomp)
   "Simple tests for `completion-in-region'."

@@ -138,7 +138,9 @@ This function is meant to be added into `completion-at-point-functions'."
     (list beg
           end
           (bashcomp-generate-completion-table-fn open-quote params)
-          :exit-function #'bashcomp-add-suffix)))
+          :exit-function (lambda (string status)
+                           (when (eq status 'finished)
+                             (bashcomp-add-suffix string))))))
 
 (defun bashcomp-generate-completion-table-fn (open-quote params)
   (let (completions)
@@ -162,16 +164,15 @@ This function is meant to be added into `completion-at-point-functions'."
                  (bashcomp-generate-line line point words cword stub))
                stub)))))
 
-(defun bashcomp-add-suffix (string status)
-  (when (eq status 'finished)
-    (unless (memq (char-before) (append '(?/ ?\s) bashcomp-wordbreaks))
-      (let ((suffix
-             (if (file-directory-p (comint-directory (shell-unquote-argument string)))
-                 "/"
-               " ")))
-        (if (looking-at suffix)
-            (goto-char (match-end 0))
-          (insert suffix))))))
+(defun bashcomp-add-suffix (string)
+  (unless (memq (char-before) (append '(?/ ?\s) bashcomp-wordbreaks))
+    (let ((suffix
+           (if (file-directory-p (comint-directory (shell-unquote-argument string)))
+               "/"
+             " ")))
+      (if (looking-at suffix)
+          (goto-char (match-end 0))
+        (insert suffix)))))
 
 (defun bashcomp-wordbreak-completion-at-point (process current-token pos)
   (let* ((wordbreak-regexp (format "^%s" (mapconcat #'string bashcomp-wordbreaks "")))
