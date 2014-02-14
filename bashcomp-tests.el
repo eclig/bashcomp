@@ -771,6 +771,7 @@ The first instance of the \"-!-\" will be removed and the point positioned there
   "bashcomp execute one completion"
   (should (equal (bashcomp-tests-with-shell
                   (let ((pos (point))
+                        (completion-cycle-threshold nil)
                         (completion-at-point-functions '(bashcomp-completion-at-point)))
                     (insert "__bash_complete_")
                     (completion-at-point)
