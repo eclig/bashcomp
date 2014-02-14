@@ -39,6 +39,11 @@
 (eval-when-compile
   '(require cl-macs))
 
+;; used in the tests bellow.
+(defun bashcomp-tests-parse-line (start pos)
+  (bashcomp-process-tokens
+   (bashcomp-tokenize start pos) pos))
+
 (ert-deftest bashcomp-test-tokenize-simple ()
   :tags '(bashcomp)
   "bashcomp-tokenize simple"
@@ -209,7 +214,7 @@
   (should (equal
            (sz-testutils-with-buffer
             ""
-            (bashcomp-parse-line 1 (line-end-position)))
+            (bashcomp-tests-parse-line 1 (line-end-position)))
            '("" 0 0 "" ("")))))
 
 (ert-deftest bashcomp-test-parse-line-trailing-space ()
@@ -218,98 +223,98 @@
   (should (equal
            (sz-testutils-with-buffer
             "cd "
-            (bashcomp-parse-line 1 (line-end-position)))
+            (bashcomp-tests-parse-line 1 (line-end-position)))
            '("cd " 3 1 "" ("cd" "")))))
 
 (ert-deftest bashcomp-test-parse-line-cursor-at-end-of-word ()
   :tags '(bashcomp)
-  "bashcomp-parse-line cursor at end of word"
+  "bashcomp-tests-parse-line cursor at end of word"
   (should (equal
            (sz-testutils-with-buffer
             "a hello world"
-            (bashcomp-parse-line 1 (line-end-position)))
+            (bashcomp-tests-parse-line 1 (line-end-position)))
            '("a hello world" 13 2 "world" ("a" "hello" "world")))))
 
 (ert-deftest bashcomp-test-parse-line-cursor-in-the-middle-of-a-word ()
   :tags '(bashcomp)
-  "bashcomp-parse-line cursor in the middle of a word"
+  "bashcomp-tests-parse-line cursor in the middle of a word"
   (should (equal
            (sz-testutils-with-buffer
             "a hello wo"
-            (bashcomp-parse-line 1 (line-end-position)))
+            (bashcomp-tests-parse-line 1 (line-end-position)))
            '("a hello wo" 10 2 "wo" ("a" "hello" "wo")))))
 
 (ert-deftest bashcomp-test-parse-line-cursor-at-the-beginning ()
   :tags '(bashcomp)
-  "bashcomp-parse-line cursor at the beginning"
+  "bashcomp-tests-parse-line cursor at the beginning"
   (should (equal
            (sz-testutils-with-buffer
             " "
-            (bashcomp-parse-line 1 (line-end-position)))
+            (bashcomp-tests-parse-line 1 (line-end-position)))
            '("" 0 0 "" ("")))))
 
 (ert-deftest bashcomp-test-parse-line-cursor-in-the-middle ()
   :tags '(bashcomp)
-  "bashcomp-parse-line cursor in the middle"
+  "bashcomp-tests-parse-line cursor in the middle"
   (should (equal
            (sz-testutils-with-buffer
             "a hello "
-            (bashcomp-parse-line 1 (line-end-position)))
+            (bashcomp-tests-parse-line 1 (line-end-position)))
            '("a hello " 8 2 "" ("a" "hello" "")))))
 
 (ert-deftest bashcomp-test-parse-line-cursor-at-end ()
   :tags '(bashcomp)
-  "bashcomp-parse-line cursor at end"
+  "bashcomp-tests-parse-line cursor at end"
   (should (equal
            (sz-testutils-with-buffer
             "a hello world b c"
-            (bashcomp-parse-line 1 (line-end-position)))
+            (bashcomp-tests-parse-line 1 (line-end-position)))
            '("a hello world b c" 17 4 "c" ("a" "hello" "world" "b" "c")))))
 
 (ert-deftest bashcomp-test-parse-line-complex-multi-command-line ()
   :tags '(bashcomp)
-  "bashcomp-parse-line complex multi-command line"
+  "bashcomp-tests-parse-line complex multi-command line"
   (should (equal
            (sz-testutils-with-buffer
             "cd /var/tmp ; ZORG=t make "
-            (bashcomp-parse-line 1 (line-end-position)))
+            (bashcomp-tests-parse-line 1 (line-end-position)))
            '("make " 5 1 "" ("make" "")))))
 
 (ert-deftest bashcomp-test-parse-line-pipe ()
   :tags '(bashcomp)
-  "bashcomp-parse-line pipe"
+  "bashcomp-tests-parse-line pipe"
   (should (equal
            (sz-testutils-with-buffer
             "ls /var/tmp | sort "
-            (bashcomp-parse-line 1 (line-end-position)))
+            (bashcomp-tests-parse-line 1 (line-end-position)))
            '("sort " 5 1 "" ("sort" "")))))
 
 (ert-deftest bashcomp-test-parse-line-escaped-semicolon ()
   :tags '(bashcomp)
-  "bashcomp-parse-line escaped semicolon"
+  "bashcomp-tests-parse-line escaped semicolon"
   (should (equal
            (sz-testutils-with-buffer
             "find -name '*.txt' -exec echo {} ';' -"
-            (bashcomp-parse-line 1 (line-end-position)))
+            (bashcomp-tests-parse-line 1 (line-end-position)))
            '("find -name '*.txt' -exec echo {} ';' " 37 7 ""
              ("find" "-name" "*.txt" "-exec" "echo" "{}" ";" "")))))
 
 (ert-deftest bashcomp-test-parse-line-at-var-assignment ()
   :tags '(bashcomp)
-  "bashcomp-parse-line at var assignment"
+  "bashcomp-tests-parse-line at var assignment"
   (should (equal
            (sz-testutils-with-buffer
             "cd /var/tmp ; A=f ZORG=t"
-            (bashcomp-parse-line 1 (line-end-position)))
+            (bashcomp-tests-parse-line 1 (line-end-position)))
            '("ZORG=t" 6 0 "ZORG=t" ("ZORG=t")))))
 
 (ert-deftest bashcomp-test-parse-line-cursor-after-end ()
   :tags '(bashcomp)
-  "bashcomp-parse-line cursor after end"
+  "bashcomp-tests-parse-line cursor after end"
   (should (equal
            (sz-testutils-with-buffer
             "a hello world b c "
-            (bashcomp-parse-line 1 (line-end-position)))
+            (bashcomp-tests-parse-line 1 (line-end-position)))
            '("a hello world b c " 18 5 ""
              ("a" "hello" "world" "b" "c" "")))))
 
@@ -318,11 +323,11 @@
 ;;
 ;; (ert-deftest bashcomp-test-parse-line-with-escaped-quote ()
 ;;   :tags '(bashcomp)
-;;   "bashcomp-parse-line with escaped quote"
+;;   "bashcomp-tests-parse-line with escaped quote"
 ;;   (should (equal
 ;;            (sz-testutils-with-buffer
 ;;             "cd /vcr/shows/Dexter\\'s"
-;;             (bashcomp-parse-line 1 (line-end-position)))
+;;             (bashcomp-tests-parse-line 1 (line-end-position)))
 ;;            '("cd /vcr/shows/Dexter\\'s" 23 1 "/vcr/shows/Dexter's"
 ;;              ("cd" "/vcr/shows/Dexter's")))))
 

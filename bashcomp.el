@@ -240,11 +240,6 @@ This function is meant to be added into `completion-at-point-functions'."
       word
     (format "'%s'" (replace-regexp-in-string "'" "'\\''" word :literal t))))
 
-;; TODO: not used anywhere, except in the regression tests
-(defun bashcomp-parse-line (start pos)
-  (bashcomp-process-tokens
-   (bashcomp-tokenize start pos) pos))
-
 ;; Emacs can perform "partial-completion" if specified in
 ;; `completion-styles': it will complete e.g. "th-n" to
 ;; "this-file-name.txt".  Bash does not support this kind of
