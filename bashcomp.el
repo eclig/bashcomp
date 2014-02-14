@@ -135,14 +135,10 @@ This function is meant to be added into `completion-at-point-functions'."
                   (1+ (bashcomp-token-begin current-token))
                 (bashcomp-token-begin current-token)))
          (end (bashcomp-token-end current-token)))
-    
     (list beg
           end
           (bashcomp-generate-completion-table-fn open-quote params)
-          :exit-function #'bashcomp-add-suffix)
-    ;; No standard completion found, try filename completion after a wordbreak
-    ;; (bashcomp-wordbreak-completion-at-point process current-token pos)
-    ))
+          :exit-function #'bashcomp-add-suffix)))
 
 (defun bashcomp-generate-completion-table-fn (open-quote params)
   (let (completions)
