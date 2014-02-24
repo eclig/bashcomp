@@ -22,58 +22,71 @@
 
 ;;; Commentary:
 ;;
-;; This file define functions which use the underlying Bash process in
-;; a `shell-mode' buffer to provide completion.
+;; INTRODUCTION
 ;;
-;; Bash completion for emacs:
-;;
-;; - is aware of Bash builtins, aliases and functions
-;; - does file expansion inside of colon-separated variables
-;;   and after redirections (> or <)
-;; - escapes special characters when expanding file names
-;; - is configurable through programmable Bash completion
-;;
-;; A simpler and more complete alternative to bashcomp.el is to
-;; run a Bash shell in a buffer in term mode(M-x `ansi-term').
-;; Unfortunately, many Emacs editing features are not available when
-;; running in term mode.  Also, term mode is not available in
-;; shell-command prompts.
+;; This file defines functions which use the underlying Bash process
+;; in a `shell-mode' buffer to provide completions in the same way as
+;; when working in a terminal.
 ;;
 ;; INSTALLATION
 ;;
-;; ...
+;; The entry points to this library are the functions `bashcomp-completion-at-point'
+;; and `bashcomp-wordbreak-completion-at-point'.  These are intended to be
+;; added to `completion-at-point-functions'.
 ;;
-;; 4. Set `comint-prompt-regexp' to match your Bash prompt, regardless
-;;    of the value of `comint-use-prompt-regexp'.  This is needed by
-;;    `comint-redirect', the library used for getting the completions
-;;    from the underlying shell process.
+;; The first one provides the "usual" completion behavior, while the
+;; second one tries to perform filename completion after breaking the
+;; word at point on the characters given by `bashcomp-wordbreaks'.
+;; The order of these functions in `completion-at-point-functions' is
+;; important, so be sure to add `bashcomp-wordbreak-completion-at-point'
+;; *after* `bashcomp-completion-at-point'.
 ;;
-;; You'll get better results if you turn on Bash's programmable completion.
-;; On Debian-based systems this means running:
-;;   sudo apt-get install bash-completion
-;; and then adding this to your .bashrc:
-;;   . /etc/bash_completion
+;; Be careful if you also use other completion functions in
+;; `completion-at-point-functions' as this is something the maintainer
+;; did not test.
 ;;
-;; Right after enabling Bash's programmable completion, and whenever
-;; you make changes to you .bashrc, call `bashcomp-reset' to make sure
-;; Bash completion takes your new settings into account.
+;; You *must* also set `comint-prompt-regexp' to match your Bash
+;; prompt, regardless of the value of `comint-use-prompt-regexp'.
+;; This is needed by `comint-redirect', the library used for getting
+;; the completions from the underlying shell process.
 ;;
-;; CAVEATS
+;; USAGE
 ;;
-;; Using the underlying Shell process for doing the completion has some
-;; important disadvantages:
-;; - Bash completion is slower than standard Emacs completion.
-;; - the first completion can take a bit longer, since a table of
-;;   available Bash completions needs to be initialized.
-;; - The variable `comint-prompt-regexp' hast be set to the
-;;   correct prompt for your Shell.
+;; Just hit TAB to have the word at point completed, like in a
+;; terminal.
 ;;
+;; There is no support for all completion styles provided by Emacs.
+;; We provide a mix of `basic' and `partial-completion' (see
+;; (info "(emacs)Completion Styles")): the completion must have the
+;; same beginning as the text before point but we will perform
+;; `partial-completion' for the part after the point, if you have it
+;; enabled in `completion-styles'.
+;;
+;; Thus if you have `cat ~/th-f.el' at the prompt with the point after
+;; the `th', hitting TAB will expand to `~/this-file.el' (provided that
+;; file exists), but won't do any completion if point is e.g. after
+;; the `-' or at the end of the line.
+;;
+;; As far as I know this is more than what Bash supports in a terminal,
+;; which corresponds to the `emacs22' completion style.
+;;
+;; This library will read Bash's completion specifications the first
+;; time you hit TAB and cache them in a table.  If you add more
+;; completion specifications afterwards, use the command `bashcomp-reset'
+;; to reread them.  Also use this command if your shell buffer seems
+;; to misbehave and/or you see "Redirection" in your mode-line.
+;;
+;; SUPPORT FOR OTHER SHELLS
+;;
+;; In principle it's possible to add support for other Shells
+;; providing the equivalent of Bash's `complete' and `compgen'.
+;; Please contact me if you are interested in doing this.
+
+;;; Code:
 
 (require 'cl-lib)
 (require 'comint)
 (require 'shell)
-
-;;; Code:
 
 ;;; User options
 
