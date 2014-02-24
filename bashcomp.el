@@ -123,7 +123,7 @@ This function is meant to be added into `completion-at-point-functions'."
           end
           (bashcomp-generate-completion-table-fn open-quote params)
           :exit-function (lambda (string status)
-                           (when (eq status 'finished)
+                           (when (memq status '(sole finished))
                              (bashcomp-add-suffix string))))))
 
 ;; Emacs performs "partial-completion" by splitting the term to be
