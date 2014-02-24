@@ -302,8 +302,8 @@ The first instance of the \"-!-\" will be removed and the point positioned there
            (bashcomp-tests-with-buffer
             "find -name '*.txt' -exec echo {} ';' -"
             (bashcomp-tests-parse-line 1 (line-end-position)))
-           '("find -name '*.txt' -exec echo {} ';' " 37 7 ""
-             ("find" "-name" "*.txt" "-exec" "echo" "{}" ";" "")))))
+           '("find -name '*.txt' -exec echo {} ';' -" 38 7 "-"
+             ("find" "-name" "*.txt" "-exec" "echo" "{}" ";" "-")))))
 
 (ert-deftest bashcomp-test-parse-line-at-var-assignment ()
   :tags '(bashcomp-unit)
@@ -782,15 +782,30 @@ The first instance of the \"-!-\" will be removed and the point positioned there
 (ert-deftest bashcomp-test-execute-wordbreak-completion ()
   :tags '(bashcomp-system)
   "bashcomp execute wordbreak completion"
-  :expected-result :failed
-  (equal (bashcomp-tests-with-shell
-          (let ((pos (point))
-                (completion-at-point-functions '(bashcomp-completion-at-point)))
-            (insert "export PATH=/sbin:/bi")
-            (completion-at-point)
-            (sit-for 1)
-            (buffer-substring-no-properties pos (point))))
-         "export PATH=/sbin:/bin"))
+  (should (equal (bashcomp-tests-with-shell
+                  (let ((pos (point))
+                        (completion-at-point-functions
+                         '(bashcomp-completion-at-point bashcomp-wordbreak-completion-at-point)))
+                    (insert "export PATH=/sbin:/bi")
+                    (completion-at-point)
+                    (sit-for 1)
+                    (buffer-substring-no-properties pos (point))))
+                 "export PATH=/sbin:/bin")))
+
+
+(ert-deftest bashcomp-test-execute-wordbreak-completion-midwords ()
+  :tags '(bashcomp-system)
+  "bashcomp execute wordbreak completion midwords"
+  (should (equal (bashcomp-tests-with-shell
+                  (let ((pos (point))
+                        (completion-at-point-functions
+                         '(bashcomp-completion-at-point bashcomp-wordbreak-completion-at-point)))
+                    (insert "export PATH=/sb:/bin")
+                    (backward-char 5)
+                    (completion-at-point)
+                    (sit-for 1)
+                    (buffer-substring-no-properties pos (point-at-eol))))
+                 "export PATH=/sbin:/bin")))
 
 (ert-deftest bashcomp-test-completion-with-custom-rule ()
   :tags '(bashcomp-system)

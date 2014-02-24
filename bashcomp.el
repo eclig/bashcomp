@@ -122,42 +122,36 @@ This function is meant to be added into `completion-at-point-functions'."
     (list beg
           end
           (bashcomp-generate-completion-table-fn open-quote params)
+          :exclusive 'no
           :exit-function (lambda (string status)
                            (when (memq status '(sole finished))
                              (bashcomp-add-suffix string))))))
 
-;; Emacs performs "partial-completion" by splitting the term to be
-;; completed on `completion-pcm-word-delimiters' and then querying the
-;; corresponding completion functions/tables multiple times to
-;; complete and confirm those substrings.  For example, on trying to
-;; complete "t-n.txt" (given that "this-file-name.txt" exists in the
-;; current directory) Emacs would first ask to complete "t", which
-;; could return "this-".  Then Emacs asks if "this-n.txt" is an unique
-;; and exact match.  And so forth.  This approach does not work very
-;; well in conjunction with shell completion.  For one thing, asking
-;; the external shell process to do completion is expensive and doing
-;; this multiple times takes an unsatisfactorily long time.
-;; Furthermore, when completing "/foo/bar" as a directory it tries to
-;; first complete "" (the part to the left of the first
-;; word-delimiter) as an directory, which will probably fail, if the
-;; shell's working directory is not "/".
-;;
-;; To resolve the first problem we use a lazy completion table,
-;; causing the expensive completion function to be called only once
-;; per completion query.  Because the completion table is now
-;; "static", we have to do "partial-completion" ourselves.  Part of
-;; this is done in 'bashcomp-generalize-stub', please see also the
-;; comments there.
-;;
-;; As it stands now, we do not provide partial-completion on paths:
-;;
-;;     cd ~/m-d<TAB>
-;;
-;; expands to "cd ~/my-dir" but
-;;
-;;     cd ~/m-d/sub-d<TAB>
-;;
-;; says "no match".
+(defun bashcomp-wordbreak-completion-at-point ()
+  "Try filename completion on the word at point after splitting on wordbreaks.
+This function is meant to be added into `completion-at-point-functions'."
+  (let* ((start (comint-line-beginning-position))
+         (pos (point))
+         (tokens (bashcomp-tokenize start pos))
+         (current-token (car (last tokens)))
+         (wordbreak-regexp (format "^%s" (mapconcat #'string bashcomp-wordbreaks "")))
+         (token-after-wordbreak (save-excursion
+                                  (skip-chars-backward wordbreak-regexp)
+                                  (bashcomp-get-token pos)))
+         (stub (bashcomp-token-string token-after-wordbreak)))
+    (list (bashcomp-token-begin token-after-wordbreak)
+          (save-excursion
+            (skip-chars-forward wordbreak-regexp (bashcomp-token-end current-token))
+            (point))
+          (let (completions)
+            (setq completions
+                  (lazy-completion-table
+                   completions
+                   (lambda ()
+                     (bashcomp-generate-completions (get-buffer-process (current-buffer))
+                                                    (bashcomp-compgen -f -- ,stub)
+                                                    stub)))))
+          :exclusive 'no)))
 
 (defun bashcomp-generate-completion-table-fn (open-quote params)
   (let (completions)
@@ -190,24 +184,6 @@ This function is meant to be added into `completion-at-point-functions'."
       (if (looking-at suffix)
           (goto-char (match-end 0))
         (insert suffix)))))
-
-(defun bashcomp-wordbreak-completion-at-point (process current-token pos)
-  (let* ((wordbreak-regexp (format "^%s" (mapconcat #'string bashcomp-wordbreaks "")))
-         (token-after-wordbreak (save-excursion
-                                  (skip-chars-backward wordbreak-regexp)
-                                  (bashcomp-get-token pos)))
-         (stub (bashcomp-token-string token-after-wordbreak)))
-    (let ((completions (bashcomp-generate-completions process
-                                                      (bashcomp-compgen -f -- ,stub)
-                                                      stub)))
-      (when completions
-        (list (bashcomp-token-begin token-after-wordbreak)
-              (save-excursion
-                (skip-chars-forward wordbreak-regexp (bashcomp-token-end current-token))
-                (point))
-              completions
-              :exclusive 'no)))))
-
 
 
 ;;; Token functions
@@ -274,8 +250,8 @@ list with the members:
          (last-token (car (last this-cmd)))
          (words (mapcar 'bashcomp-token-string this-cmd))
          (last-word (car (last words)))
-         (stub (bashcomp-generalize-stub last-word))
          (start (bashcomp-token-begin first-token))
+         (stub (substring last-word 0 (- pos (bashcomp-token-begin last-token))))
          (end   (+ (bashcomp-token-begin last-token) (length stub))))
     (setf (car (last words)) stub)
     (list
@@ -284,26 +260,6 @@ list with the members:
      (- (length words) 1)
      stub
      words)))
-
-;; Emacs can perform "partial-completion" if specified in
-;; `completion-styles': it will complete e.g. "th-n" to
-;; "this-file-name.txt".  Bash does not support this kind of
-;; completion, meaning the word to be completed must be a prefix of
-;; the possible completions.  So we trick Bash here and instead of
-;; asking it to complete "th-n" (to which it would respond `nil') we
-;; ask it to complete "th".  Of course this will lead to false
-;; positives (like "that-other-directory") but Emacs' completion
-;; engine will filter them out later.  TODO: this filtering could also
-;; be done in the "predicate" property of completion table.
-;;
-;; We just have to be careful with directories and such (URLs!), since
-;; most Bash completion functions do not work recursively.
-(defun bashcomp-generalize-stub (word)
-  (let ((dir (or (file-name-directory word) ""))
-        (last (file-name-nondirectory word))
-        (rx (format "[%s*]" completion-pcm-word-delimiters)))
-    (concat dir
-            (substring last 0 (string-match rx last)))))
 
 (defun bashcomp-extract-current-command (tokens)
   "Extract from TOKENS the tokens forming the current command.
