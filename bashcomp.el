@@ -267,8 +267,7 @@ list with the members:
  point - position of the cursor in line (number)
  cword - 0-based index of the word to be completed in words (number)
  stub - the portion before point of the string to be completed (string)
- words - line split into words, unescaped (list of strings)
-"
+ words - line split into words, unescaped (list of strings)"
   (let* ((this-cmd (bashcomp-extract-current-command tokens))
          (first-token (car this-cmd))
          (last-token (car (last this-cmd)))
@@ -441,7 +440,7 @@ QUOTE should be nil, ?' or ?\"."
            " 2>/dev/null"))
 
 (defun bashcomp-generate-completions (process command stub)
-  "Run compgen command COMMAND in process PROCESS.
+  "Run compgen in process PROCESS using command COMMAND.
 COMMAND can be a string or a function: a string is used as is; a
 function should accept one argument `stub' and return the
 completion command to be called to complete it.  This allows for
@@ -501,7 +500,7 @@ Return a possibly escaped version of COMPLETION-CANDIDATE."
 ;;; Completion table
 
 (defun bashcomp-initialize-rules (buffer rules)
-  "Initialize hash table RULES from the contents of BUFFER.
+  "Use the contents of BUFFER to initialize hash table RULES.
 BUFFER should contain the output of \"complete -p\"."
   (with-current-buffer buffer
     (save-excursion
@@ -583,9 +582,7 @@ candidates."
 
 ;;;###autoload
 (defun bashcomp-reset ()
-  "Force the next completion command to reread the completion table.
-Call this function if you have updated your ~/.bashrc or any Bash init scripts
-and would like Bash completion in Emacs to take these changes into account."
+  "Force the next completion command to reread Bash's completion specifications."
   (interactive)
   (comint-redirect-cleanup)
   (setq bashcomp-initialized nil))
