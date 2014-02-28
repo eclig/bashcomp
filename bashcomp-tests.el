@@ -611,7 +611,7 @@ The first instance of the \"-!-\" will be removed and the point positioned there
 
 (ert-deftest bashcomp-test-add-suffix-ends-with-slash ()
   :tags '(bashcomp-unit)
-  "bashcomp-add-suffix ends with /"
+  "bashcomp-maybe-add-suffix ends with /"
   (should (string=
            (cl-letf (((symbol-function 'file-directory-p)
                       (lambda (a)
@@ -621,13 +621,13 @@ The first instance of the \"-!-\" will be removed and the point positioned there
              (let ((str "hello/"))
                (with-temp-buffer
                  (insert str)
-                 (bashcomp-add-suffix str)
+                 (bashcomp-maybe-add-suffix str)
                  (buffer-string))))
            "hello/")))
 
 (ert-deftest bashcomp-test-add-suffix-ends-with-space ()
   :tags '(bashcomp-unit)
-  "bashcomp-add-suffix ends with space"
+  "bashcomp-maybe-add-suffix ends with space"
   (should (string=
            (cl-letf (((symbol-function 'file-directory-p)
                       (lambda (a)
@@ -637,13 +637,13 @@ The first instance of the \"-!-\" will be removed and the point positioned there
              (let ((str "hello "))
                (with-temp-buffer
                  (insert str)
-                 (bashcomp-add-suffix str)
+                 (bashcomp-maybe-add-suffix str)
                  (buffer-string))))
            "hello ")))
 
 (ert-deftest bashcomp-test-add-suffix-ends-with-separator ()
   :tags '(bashcomp-unit)
-  "bashcomp-add-suffix ends with separator"
+  "bashcomp-maybe-add-suffix ends with separator"
   (should (string=
            (cl-letf (((symbol-function 'file-directory-p)
                       (lambda (a)
@@ -653,13 +653,13 @@ The first instance of the \"-!-\" will be removed and the point positioned there
              (let ((str "hello:"))
                (with-temp-buffer
                  (insert str)
-                 (bashcomp-add-suffix str)
+                 (bashcomp-maybe-add-suffix str)
                  (buffer-string))))
            "hello:")))
 
 (ert-deftest bashcomp-test-add-suffix-check-directory ()
   :tags '(bashcomp-unit)
-  "bashcomp-add-suffix check directory"
+  "bashcomp-maybe-add-suffix check directory"
   (should (string=
            (cl-letf (((symbol-function 'file-directory-p)
                       (lambda (a)
@@ -673,16 +673,41 @@ The first instance of the \"-!-\" will be removed and the point positioned there
                          "/tmp"))
                      ((symbol-function 'shell-unquote-argument)
                       #'identity))
-             (let ((str "hello"))
+             (let ((str "hello")
+                   (bashcomp-add-suffix t))
                (with-temp-buffer
                  (insert str)
-                 (bashcomp-add-suffix str)
+                 (bashcomp-maybe-add-suffix str)
                  (buffer-string))))
            "hello/")))
 
+(ert-deftest bashcomp-test-add-suffix-check-directory-2 ()
+  :tags '(bashcomp-unit)
+  "bashcomp-maybe-add-suffix check directory, with `bashcomp-add-suffix' set to nil."
+  (should (string=
+           (cl-letf (((symbol-function 'file-directory-p)
+                      (lambda (a)
+                        (string= a
+                                 (if (memq system-type '(windows-nt ms-dos))
+                                     "c:/tmp/hello"
+                                   "/tmp/hello"))))
+                     (default-directory
+                       (if (memq system-type '(windows-nt ms-dos))
+                           "c:/tmp"
+                         "/tmp"))
+                     ((symbol-function 'shell-unquote-argument)
+                      #'identity))
+             (let ((str "hello")
+                   (bashcomp-add-suffix nil))
+               (with-temp-buffer
+                 (insert str)
+                 (bashcomp-maybe-add-suffix str)
+                 (buffer-string))))
+           "hello")))
+
 (ert-deftest bashcomp-test-add-suffix-check-directory-expand-tilde ()
   :tags '(bashcomp-unit)
-  "bashcomp-add-suffix check directory, expand tilde"
+  "bashcomp-maybe-add-suffix check directory, expand tilde"
   (should (string=
            (cl-letf (((symbol-function 'file-directory-p)
                       (lambda (a)
@@ -690,10 +715,11 @@ The first instance of the \"-!-\" will be removed and the point positioned there
                      (default-directory "~/x")
                      ((symbol-function 'shell-unquote-argument)
                       #'identity))
-             (let ((str "y"))
+             (let ((str "y")
+                   (bashcomp-add-suffix t))
                (with-temp-buffer
                  (insert str)
-                 (bashcomp-add-suffix str)
+                 (bashcomp-maybe-add-suffix str)
                  (buffer-string))))
            "y/")))
 

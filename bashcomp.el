@@ -91,10 +91,15 @@
 ;;; User options
 
 (defgroup bashcomp nil
-  "Bash configurable command-line completion "
-  :group 'shell
-  :group 'shell-command)
+  "Using Bash's native completion engine in shell buffers."
+  :group 'shell)
 
+(defcustom bashcomp-add-suffix t
+  "Non-nil if `bashcomp' should add a suffix to completed file names.
+In case of exact or unambiguous completion add a slash (`/') if
+the completed word is a directory name or a space otherwise."
+  :type 'boolean
+  :group 'bashcomp)
 ;;; Internal variables and constants
 
 (defvar-local bashcomp-initialized nil
@@ -138,7 +143,7 @@ This function is meant to be added into `completion-at-point-functions'."
           :exclusive 'no
           :exit-function (lambda (string status)
                            (when (eq status 'finished)
-                             (bashcomp-add-suffix string))))))
+                             (bashcomp-maybe-add-suffix string))))))
 
 (defun bashcomp-wordbreak-completion-at-point ()
   "Try filename completion on the word at point after splitting on wordbreaks.
@@ -188,8 +193,9 @@ This function is meant to be added into `completion-at-point-functions'."
                  (bashcomp-generate-line line point words cword stub))
                stub)))))
 
-(defun bashcomp-add-suffix (string)
-  (unless (memq (char-before) (append '(?/ ?\s) bashcomp-wordbreaks))
+(defun bashcomp-maybe-add-suffix (string)
+  (unless (or (null bashcomp-add-suffix)
+              (memq (char-before) (append '(?/ ?\s) bashcomp-wordbreaks)))
     (let ((suffix
            (if (file-directory-p (comint-directory (shell-unquote-argument string)))
                "/"
