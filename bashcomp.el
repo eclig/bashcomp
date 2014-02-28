@@ -78,7 +78,7 @@
 ;;
 ;; SUPPORT FOR OTHER SHELLS
 ;;
-;; In principle it's possible to add support for other Shells
+;; In principle it's possible to add support for other shells
 ;; providing the equivalent of Bash's `complete' and `compgen'.
 ;; Please contact me if you are interested in doing this.
 ;;
@@ -86,7 +86,6 @@
 ;;
 ;; * Handle unexpected output (job termination, new mail, etc.) while
 ;;   shell output is being redirected.
-;; * Decorate file name completions (using `/', `*', `@', ...)
 ;; * Maybe decorate command name completions (`<c>', `<a>', `<f>' for
 ;;   `command', `alias' or `function').
 ;; * Better handling of completions ending with spaces.
@@ -114,6 +113,27 @@ In case of exact or unambiguous completion add a slash (`/') if
 the completed word is a directory name or a space otherwise."
   :type 'boolean
   :group 'bashcomp)
+
+(defcustom bashcomp-complete-empty-command 2
+  "Determine if `bashcomp' should try command completion on an empty line.
+If `t' complete command name on an empty line.  If `nil' there
+should be at least one char (excluding quotes etc.) on the
+command line when doing command completion.  If an integer, this
+variable determines the minimum length of the word in a command
+position in order for completion to be attempted."
+  :type '(radio (const :tag "Complete empty commands" t)
+                (const :tag "Do not complete empty commands" nil)
+                (integer :tag "Complete commands if longer than this"))
+  :group 'bashcomp)
+
+(defcustom bashcomp-annotate-candidates t
+  "Non-nil if `bashcomp' should annotate completion candidates corresponding to filenames.
+The used annotations are: `/' for directories, `*' for
+executables and `@' for symbolic links.  Other candidates are
+left unannotated."
+  :type 'boolean
+  :group 'bashcomp)
+
 ;;; Internal variables and constants
 
 (defvar-local bashcomp-initialized nil
@@ -155,6 +175,7 @@ This function is meant to be added into `completion-at-point-functions'."
           end
           (bashcomp-generate-completion-table-fn open-quote params)
           :exclusive 'no
+          :annotation-function #'bashcomp-maybe-annotate-candidate
           :exit-function (lambda (string status)
                            (when (eq status 'finished)
                              (bashcomp-maybe-add-suffix string))))))
@@ -228,17 +249,21 @@ This function is meant to be added into `completion-at-point-functions'."
 
 (defun bashcomp-get-completions (open-quote params)
   (destructuring-bind (line point cword stub words) params
-    (let ((process (get-buffer-process (current-buffer))))
-      (unless bashcomp-initialized
-        (bashcomp-initialize process)
-        (setq bashcomp-initialized t))
-      (mapcar (lambda (str)
-                (bashcomp-escape-candidate str open-quote))
-              (bashcomp-generate-completions
-               process
-               (lambda (stub)
-                 (bashcomp-generate-line line point words cword stub))
-               stub)))))
+    (unless (and (= cword 0)
+                 (if (numberp bashcomp-complete-empty-command)
+                     (< (length stub) bashcomp-complete-empty-command)
+                   (null bashcomp-complete-empty-command)))
+      (let ((process (get-buffer-process (current-buffer))))
+        (unless bashcomp-initialized
+          (bashcomp-initialize process)
+          (setq bashcomp-initialized t))
+        (mapcar (lambda (str)
+                  (bashcomp-escape-candidate str open-quote))
+                (bashcomp-generate-completions
+                 process
+                 (lambda (stub)
+                   (bashcomp-generate-line line point words cword stub))
+                 stub))))))
 
 (defun bashcomp-maybe-add-suffix (string)
   (unless (or (null bashcomp-add-suffix)
@@ -252,6 +277,14 @@ This function is meant to be added into `completion-at-point-functions'."
           (goto-char (match-end 0))
         (insert suffix)))))
 
+(defun bashcomp-maybe-annotate-candidate (string)
+  (when bashcomp-annotate-candidates
+    (let ((fn (shell-unquote-argument string)))
+      (cond
+       ((file-symlink-p fn)    "@")
+       ((file-directory-p fn)  "/")
+       ((file-executable-p fn) "*")
+       (t "")))))
 
 ;;; Token functions
 
