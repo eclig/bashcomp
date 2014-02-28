@@ -805,6 +805,20 @@ The first instance of the \"-!-\" will be removed and the point positioned there
                     (buffer-substring-no-properties pos (point))))
                  "__bash_complete_wrapper ")))
 
+(ert-deftest bashcomp-test-complete-empty-command ()
+  :tags '(bashcomp-system)
+  "bashcomp execute one completion testing `bashcomp-complete-empty-command'"
+  (should (equal (bashcomp-tests-with-shell
+                  (let ((pos (point))
+                        (completion-cycle-threshold nil)
+                        (completion-at-point-functions '(bashcomp-completion-at-point))
+                        (bashcomp-complete-empty-command 5))
+                    (insert "__bash_complete_")
+                    (completion-at-point)
+                    (sit-for 1)
+                    (buffer-substring-no-properties pos (point))))
+                 "__bash_complete_wrapper ")))
+
 (ert-deftest bashcomp-test-execute-wordbreak-completion ()
   :tags '(bashcomp-system)
   "bashcomp execute wordbreak completion"

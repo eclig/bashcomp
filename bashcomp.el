@@ -100,6 +100,19 @@ In case of exact or unambiguous completion add a slash (`/') if
 the completed word is a directory name or a space otherwise."
   :type 'boolean
   :group 'bashcomp)
+
+(defcustom bashcomp-complete-empty-command 2
+  "Determine if `bashcomp' should try command completion on an empty line.
+If `t' complete command name on an empty line.  If `nil' there
+should be at least one char (excluding quotes etc.) on the
+command line when doing command completion.  If an integer, this
+variable determines the minimum length of the word in a command
+position in order for completion to be attempted."
+  :type '(radio (const :tag "Complete empty commands" t)
+                (const :tag "Do not complete empty commands" nil)
+                (integer :tag "Complete commands if longer than this"))
+  :group 'bashcomp)
+
 ;;; Internal variables and constants
 
 (defvar-local bashcomp-initialized nil
@@ -181,17 +194,21 @@ This function is meant to be added into `completion-at-point-functions'."
 
 (defun bashcomp-get-completions (open-quote params)
   (destructuring-bind (line point cword stub words) params
-    (let ((process (get-buffer-process (current-buffer))))
-      (unless bashcomp-initialized
-        (bashcomp-initialize process)
-        (setq bashcomp-initialized t))
-      (mapcar (lambda (str)
-                (bashcomp-escape-candidate str open-quote))
-              (bashcomp-generate-completions
-               process
-               (lambda (stub)
-                 (bashcomp-generate-line line point words cword stub))
-               stub)))))
+    (unless (and (= cword 0)
+                 (if (numberp bashcomp-complete-empty-command)
+                     (< (length stub) bashcomp-complete-empty-command)
+                   (null bashcomp-complete-empty-command)))
+      (let ((process (get-buffer-process (current-buffer))))
+        (unless bashcomp-initialized
+          (bashcomp-initialize process)
+          (setq bashcomp-initialized t))
+        (mapcar (lambda (str)
+                  (bashcomp-escape-candidate str open-quote))
+                (bashcomp-generate-completions
+                 process
+                 (lambda (stub)
+                   (bashcomp-generate-line line point words cword stub))
+                 stub))))))
 
 (defun bashcomp-maybe-add-suffix (string)
   (unless (or (null bashcomp-add-suffix)
