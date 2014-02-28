@@ -50,6 +50,11 @@
 ;; This is needed by `comint-redirect', the library used for getting
 ;; the completions from the underlying shell process.
 ;;
+;; This library executes commands in your shell.  These commands are
+;; prepended with a space character.  It's recommended that you set
+;; HISTCONTROL and/or HISTIGNORE accordingly, so that those commands
+;; are not saved in the history list.
+;;
 ;; USAGE
 ;;
 ;; Just hit TAB to have the word at point completed, like in a
