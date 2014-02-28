@@ -81,6 +81,20 @@
 ;; In principle it's possible to add support for other shells
 ;; providing the equivalent of Bash's `complete' and `compgen'.
 ;; Please contact me if you are interested in doing this.
+;;
+;; TO BE DONE
+;;
+;; * Handle unexpected output (job termination, new mail, etc.) while
+;;   shell output is being redirected.
+;; * Decorate file name completions (using `/', `*', `@', ...)
+;; * Maybe decorate command name completions (`<c>', `<a>', `<f>' for
+;;   `command', `alias' or `function').
+;; * Better handling of completions ending with spaces.
+;; * Maybe implement partial completion in the shell.
+;; * Consider letting the shell find the applicable completion
+;;   specification instead of caching them.  This could make
+;;   `restarts' simpler and might come handy when using `ssh'.
+;; * Search for "TODO" in the code.
 
 ;;; Code:
 
@@ -214,6 +228,7 @@ This function is meant to be added into `completion-at-point-functions'."
   (unless (or (null bashcomp-add-suffix)
               (memq (char-before) (append '(?/ ?\s) bashcomp-wordbreaks)))
     (let ((suffix
+           ;; TODO: is `shell-unquote-argument' enough or do we need `bashcomp-unquote'?
            (if (file-directory-p (comint-directory (shell-unquote-argument string)))
                "/"
              " ")))
