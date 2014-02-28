@@ -78,7 +78,7 @@
 ;;
 ;; SUPPORT FOR OTHER SHELLS
 ;;
-;; In principle it's possible to add support for other Shells
+;; In principle it's possible to add support for other shells
 ;; providing the equivalent of Bash's `complete' and `compgen'.
 ;; Please contact me if you are interested in doing this.
 
