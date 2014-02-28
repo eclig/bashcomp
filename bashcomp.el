@@ -86,7 +86,6 @@
 ;;
 ;; * Handle unexpected output (job termination, new mail, etc.) while
 ;;   shell output is being redirected.
-;; * Decorate file name completions (using `/', `*', `@', ...)
 ;; * Maybe decorate command name completions (`<c>', `<a>', `<f>' for
 ;;   `command', `alias' or `function').
 ;; * Better handling of completions ending with spaces.
@@ -125,6 +124,14 @@ position in order for completion to be attempted."
   :type '(radio (const :tag "Complete empty commands" t)
                 (const :tag "Do not complete empty commands" nil)
                 (integer :tag "Complete commands if longer than this"))
+  :group 'bashcomp)
+
+(defcustom bashcomp-annotate-candidates t
+  "Non-nil if `bashcomp' should annotate completion candidates corresponding to filenames.
+The used annotations are: `/' for directories, `*' for
+executables and `@' for symbolic links.  Other candidates are
+left unannotated."
+  :type 'boolean
   :group 'bashcomp)
 
 ;;; Internal variables and constants
@@ -168,6 +175,7 @@ This function is meant to be added into `completion-at-point-functions'."
           end
           (bashcomp-generate-completion-table-fn open-quote params)
           :exclusive 'no
+          :annotation-function #'bashcomp-maybe-annotate-candidate
           :exit-function (lambda (string status)
                            (when (eq status 'finished)
                              (bashcomp-maybe-add-suffix string))))))
@@ -236,6 +244,14 @@ This function is meant to be added into `completion-at-point-functions'."
           (goto-char (match-end 0))
         (insert suffix)))))
 
+(defun bashcomp-maybe-annotate-candidate (string)
+  (when bashcomp-annotate-candidates
+    (let ((fn (shell-unquote-argument string)))
+      (cond
+       ((file-symlink-p fn)    "@")
+       ((file-directory-p fn)  "/")
+       ((file-executable-p fn) "*")
+       (t "")))))
 
 ;;; Token functions
 
