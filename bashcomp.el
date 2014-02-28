@@ -137,7 +137,7 @@ This function is meant to be added into `completion-at-point-functions'."
           (bashcomp-generate-completion-table-fn open-quote params)
           :exclusive 'no
           :exit-function (lambda (string status)
-                           (when (memq status '(sole finished))
+                           (when (eq status 'finished)
                              (bashcomp-add-suffix string))))))
 
 (defun bashcomp-wordbreak-completion-at-point ()
