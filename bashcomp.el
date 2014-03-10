@@ -465,7 +465,7 @@ QUOTE should be nil, ?' or ?\"."
                         (bashcomp-quote (format "%s" s)))
                       (backquote ,args)
                       " ")
-           " 2>/dev/null"))
+           " 2>/dev/null;"))
 
 (defun bashcomp-generate-completions (process command stub)
   "Run compgen in process PROCESS using command COMMAND.
@@ -663,7 +663,7 @@ rules for those given commands."
   (bashcomp-call-with-temp-buffer
    (lambda (temp-buffer)
      (bashcomp-send
-      (concat "complete -p " (mapconcat #'identity commands " "))
+      (concat "complete -p " (mapconcat #'identity commands " ") ";")
       process
       temp-buffer)
      (bashcomp-initialize-rules temp-buffer rules))))
