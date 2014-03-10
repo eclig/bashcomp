@@ -183,7 +183,7 @@ This function is meant to be added into `completion-at-point-functions'."
           :annotation-function #'bashcomp-maybe-annotate-candidate
           :exit-function (lambda (string status)
                            (when (eq status 'finished)
-                             (bashcomp-maybe-add-suffix string))))))
+                             (bashcomp-maybe-add-suffix string open-quote))))))
 
 (defun bashcomp-wordbreak-completion-at-point ()
   "Try filename completion on the word at point after splitting on wordbreaks.
@@ -237,14 +237,14 @@ This function is meant to be added into `completion-at-point-functions'."
                    (bashcomp-generate-line line point words cword stub))
                  stub))))))
 
-(defun bashcomp-maybe-add-suffix (string)
+(defun bashcomp-maybe-add-suffix (string open-quote)
   (unless (or (null bashcomp-add-suffix)
               (memq (char-before) (append '(?/ ?\s) bashcomp-wordbreaks)))
     (let ((suffix
            ;; TODO: is `shell-unquote-argument' enough or do we need `bashcomp-unquote'?
            (if (file-directory-p (comint-directory (shell-unquote-argument string)))
                "/"
-             " ")))
+             (if open-quote (string open-quote ?\s) " "))))
       (if (looking-at suffix)
           (goto-char (match-end 0))
         (insert suffix)))))
