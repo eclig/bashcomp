@@ -628,7 +628,7 @@ CMD, if any, goes into the buffer given by OUTPUT-BUFFER."
           ;; history.  Requires HISTCONTROL/HISTIGNORE to be set accordingly.
           (comint-redirect-send-command-to-process (concat " " cmd) output-buffer process nil t)
           (while (null comint-redirect-completed)
-            (accept-process-output nil 1)))
+            (accept-process-output process)))
       ;; make sure the clean-up is done in the right buffer.
       ;; `comint-redirect-completed' is buffer-local and
       ;; `comint-redirect-cleanup' operates on the current-buffer only.
