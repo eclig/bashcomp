@@ -322,7 +322,10 @@ list with the members:
          (words (mapcar 'bashcomp-token-string this-cmd))
          (last-word (car (last words)))
          (start (bashcomp-token-begin first-token))
-         (stub (substring last-word 0 (- pos (bashcomp-token-begin last-token))))
+         (stub (bashcomp-token-string
+                (save-excursion
+                  (goto-char (bashcomp-token-begin last-token))
+                  (bashcomp-get-token pos))))
          (end   (+ (bashcomp-token-begin last-token) (length stub))))
     (setf (car (last words)) stub)
     (list
