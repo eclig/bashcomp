@@ -173,6 +173,8 @@ This function is meant to be added into `completion-at-point-functions'."
          (open-quote (bashcomp-token-quote current-token))
          (params (bashcomp-process-tokens tokens pos))
          (beg (if open-quote
+                  ;; TODO: this seems to assume that the quote is the
+                  ;; first char in token!
                   (1+ (bashcomp-token-begin current-token))
                 (bashcomp-token-begin current-token)))
          (end (bashcomp-token-end current-token)))
