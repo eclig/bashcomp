@@ -397,13 +397,6 @@ The first instance of the \"-!-\" will be removed and the point positioned there
              ("cv" "-F" "_cdargs_aliases")
              ("cb" "-F" "_cdargs_aliases")))))
 
-(ert-deftest bashcomp-test-quote-not-necessary ()
-  :tags '(bashcomp-unit)
-  "bashcomp-quote not necessary"
-  (should (string=
-           (bashcomp-quote "hello")
-           "hello")))
-
 (ert-deftest bashcomp-test-quote-space ()
   :tags '(bashcomp-unit)
   "bashcomp-quote space"
@@ -426,7 +419,7 @@ The first instance of the \"-!-\" will be removed and the point positioned there
                  (bashcomp-rules (make-hash-table :test 'equal))
                  (default-directory "~/test"))
              (bashcomp-generate-line "hello worl" 7 '("hello" "worl") 1 "worl"))
-           (format "compgen -P '%s' -f -- worl 2>/dev/null;" bashcomp-candidates-prefix))))
+           (format "compgen -P '%s' '-f' '--' 'worl' 2>/dev/null;" bashcomp-candidates-prefix))))
 
 (ert-deftest bashcomp-test-generate-line-custom-completion-no-function-or-command ()
   :tags '(bashcomp-unit)
@@ -437,7 +430,7 @@ The first instance of the \"-!-\" will be removed and the point positioned there
                  (default-directory "/test"))
              (bashcomp-add-rule (list "complete" "-A" "-G" "*.txt" "zorg") bashcomp-rules)
              (bashcomp-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
-           (format "compgen -P '%s' -A -G '*.txt' -- worl 2>/dev/null;" bashcomp-candidates-prefix))))
+           (format "compgen -P '%s' '-A' '-G' '*.txt' '--' 'worl' 2>/dev/null;" bashcomp-candidates-prefix))))
 
 (ert-deftest bashcomp-test-bashcomp-specification ()
   :tags '(bashcomp-unit)
@@ -477,7 +470,7 @@ The first instance of the \"-!-\" will be removed and the point positioned there
                  (default-directory "/test"))
              (bashcomp-add-rule (list "complete" "-F" "__zorg" "zorg") bashcomp-rules)
              (bashcomp-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
-           (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl 2>/dev/null;" bashcomp-candidates-prefix))))
+           (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( '\\''zorg'\\'' '\\''worl'\\'' ); '\\''__zorg'\\'' \"${COMP_WORDS[@]}\"' compgen -P '%s' '-F' '__bash_complete_wrapper' '--' 'worl' 2>/dev/null;" bashcomp-candidates-prefix))))
 
 (ert-deftest bashcomp-test-generate-line-custom-completion-command ()
   :tags '(bashcomp-unit)
@@ -488,7 +481,7 @@ The first instance of the \"-!-\" will be removed and the point positioned there
                  (default-directory "/test"))
              (bashcomp-add-rule (list "complete" "-C" "__zorg" "zorg") bashcomp-rules)
              (bashcomp-generate-line "zorg worl" 7 '("zorg" "worl") 1 "worl"))
-           (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( zorg worl ); __zorg \"${COMP_WORDS[@]}\"' compgen -P '%s' -F __bash_complete_wrapper -- worl 2>/dev/null;" bashcomp-candidates-prefix))))
+           (format "__BASH_COMPLETE_WRAPPER='COMP_LINE='\\''zorg worl'\\''; COMP_POINT=7; COMP_CWORD=1; COMP_WORDS=( '\\''zorg'\\'' '\\''worl'\\'' ); '\\''__zorg'\\'' \"${COMP_WORDS[@]}\"' compgen -P '%s' '-F' '__bash_complete_wrapper' '--' 'worl' 2>/dev/null;" bashcomp-candidates-prefix))))
 
 (ert-deftest bashcomp-test-send ()
   :tags '(bashcomp-unit)
@@ -593,7 +586,7 @@ The first instance of the \"-!-\" will be removed and the point positioned there
   "bashcomp-quote allowed"
   (should (string=
            (bashcomp-quote "abc_ABC/1-2.3")
-           "abc_ABC/1-2.3")))
+           "'abc_ABC/1-2.3'")))
 
 (ert-deftest bashcomp-test-quote-quoted ()
   :tags '(bashcomp-unit)

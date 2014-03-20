@@ -304,9 +304,7 @@ This function is meant to be added into `completion-at-point-functions'."
 ;; See also `tramp-shell-quote-argument'.
 (defun bashcomp-quote (word)
   "Quote WORD as appropriate for passing as an arguments to the shell."
-  (if (string-match-p "^[a-zA-Z0-9_./-]*$" word)
-      word
-    (format "'%s'" (replace-regexp-in-string "'" "'\\''" word :literal t))))
+  (format "'%s'" (replace-regexp-in-string "'" "'\\''" word :literal t)))
 
 (defun bashcomp-process-tokens (tokens pos)
   "Process a command line split into TOKENS that end at POS.
