@@ -536,7 +536,7 @@ BUFFER should contain the output of \"complete -p\"."
   (with-current-buffer buffer
     (save-excursion
       (goto-char (point-max))
-      (while (= 0 (forward-line -1))
+      (while (zerop (forward-line -1))
         (bashcomp-add-rule
          (mapcar 'bashcomp-token-string
                  (bashcomp-tokenize (line-beginning-position) (line-end-position)))
@@ -583,11 +583,10 @@ candidates."
          (compgen-args (bashcomp-specification command)))
     (cond
      ((= cword 0)
-      ;; a command. let emacs expand executable, let Bash
-      ;; expand builtins, aliases and functions
+      ;; a command
       (bashcomp-compgen -b -c -a -A function -- ,stub))
 
-     ((not compgen-args)
+     ((null compgen-args)
       ;; no completion configured for this command
       (bashcomp-compgen -f -- ,stub))
 
