@@ -228,6 +228,7 @@ This function is meant to be added into `completion-at-point-functions'."
                      (< (length stub) bashcomp-complete-empty-command)
                    (null bashcomp-complete-empty-command)))
       (let ((process (get-buffer-process (current-buffer))))
+        (assert (processp process) t)
         (unless bashcomp-initialized
           (bashcomp-initialize process)
           (setq bashcomp-initialized t))
@@ -673,6 +674,7 @@ rules for those given commands."
 (defmacro bashcomp-call-with-temp-buffer (thunk)
   "Call THUNK with a freshly created temporary buffer as an argument.
 Like `with-temp-buffer' but does not change the current buffer."
+  (declare (debug (form)))
   (let ((temp-buffer (make-symbol "temp-buffer")))
     `(let ((,temp-buffer (generate-new-buffer " *temp*")))
        (unwind-protect
