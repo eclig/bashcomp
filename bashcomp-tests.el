@@ -456,10 +456,14 @@ The first instance of the \"-!-\" will be removed and the point positioned there
       (should-not (bashcomp-specification "zorgo.exe"))
       (should
        (equal (bashcomp-specification "zorg.exe")
-              '("-A" "-G" "*.txt")))
-      (should
-       (equal (bashcomp-specification "c:\\foo\\bar\\zorg.exe")
-              '("-A" "-G" "*.txt"))))))
+              '("-A" "-G" "*.txt"))))
+
+    ;; because `bashcomp-specification' uses `file-name-nondirectory'
+    ;; this test only works on "real" "Windows" systems.
+    (and (memq system-type '(ms-dos windows-nt))
+         (should
+          (equal (bashcomp-specification "c:\\foo\\bar\\zorg.exe")
+                 '("-A" "-G" "*.txt"))))))
 
 (ert-deftest bashcomp-test-generate-line-custom-completion-function ()
   :tags '(bashcomp-unit)
