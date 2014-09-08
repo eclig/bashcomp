@@ -464,12 +464,12 @@ QUOTE should be nil, ?' or ?\"."
 ;;; Getting completion candidates from Bash
 
 (defmacro bashcomp-compgen (&rest args)
-  `(concat (format "compgen -P '%s' " bashcomp-candidates-prefix)
+  `(concat "compgen "
            (mapconcat (lambda (s)
                         (bashcomp-quote (format "%s" s)))
                       (backquote ,args)
                       " ")
-           " 2>/dev/null;"))
+           (format " > >(while IFS= read -r x; do echo \"%s$x\"; done)" bashcomp-candidates-prefix)))
 
 (defun bashcomp-generate-completions (process command stub)
   "Run compgen in process PROCESS using command COMMAND.
